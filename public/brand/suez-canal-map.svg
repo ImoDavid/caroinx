@@ -1,0 +1,24 @@
+<!-- Decorative backdrop for the telemetry hub: a stylised Suez transit corridor.
+     Rendered into an h-80 bg-cover box, so only the centre band is visible —
+     the channel and vessel marker are kept near the vertical centre. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+    <pattern id="graticule" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0H0V60" fill="none" stroke="#f8e138" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="600" fill="#0d1252"/>
+  <rect width="1200" height="600" fill="url(#graticule)" opacity="0.12"/>
+
+  <!-- Landmasses flanking the channel -->
+  <path d="M0 0H520L470 140L505 260L455 380L500 500L440 600H0Z" fill="#1b2456"/>
+  <path d="M1200 0H700L745 130L705 250L760 370L715 490L780 600H1200Z" fill="#1b2456"/>
+
+  <!-- Transit channel -->
+  <polyline points="600,0 585,120 610,250 590,380 615,500 600,600" fill="none" stroke="#f8e138" stroke-width="3" stroke-dasharray="14 10" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Vessel marker at the Gulf of Suez, with ping halo -->
+  <circle cx="601" cy="300" r="20" fill="#f8e138" fill-opacity="0.25"/>
+  <circle cx="601" cy="300" r="7" fill="#f8e138"/>
+</svg>

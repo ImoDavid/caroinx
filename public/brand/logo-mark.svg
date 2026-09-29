@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="True Global Route Logistics">
+  <rect width="32" height="32" rx="6" fill="#0d1252"/>
+  <path d="M7 22.5C10.5 22.5 11.5 9.5 16 9.5C20.5 9.5 21.5 22.5 25 22.5" fill="none" stroke="#f8e138" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="7" cy="22.5" r="2.5" fill="#f8e138"/>
+  <circle cx="25" cy="22.5" r="2.5" fill="#f8e138"/>
+</svg>

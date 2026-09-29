@@ -1,0 +1,15 @@
+.next
+out
+build
+coverage
+node_modules
+package-lock.json
+next-env.d.ts
+*.ico
+*.svg
+
+# Design source of truth, kept verbatim as exported from the design tool.
+hometemp.html
+
+# Authored briefs — kept as written, not reflowed.
+masterplan.md
