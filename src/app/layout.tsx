@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+
+import { ThemeProvider } from "@/components/theme-provider";
+
 import "./globals.css";
 
 // Both families are variable fonts, so `weight` is omitted deliberately: one
@@ -31,9 +34,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} ${inter.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-surface text-body-base text-on-surface">
-        {children}
+    // `suppressHydrationWarning` is required by next-themes, which sets the
+    // theme class on <html> from a blocking script before React hydrates.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${plusJakarta.variable} ${inter.variable} h-full antialiased`}
+    >
+      {/* Semantic tokens rather than the light-only brand ones, so the admin's
+          dark background owns the body and overscroll area. The public site
+          re-applies its own surface colours in `(public)/layout.tsx`. */}
+      <body className="flex min-h-full flex-col bg-background text-body-base text-foreground">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

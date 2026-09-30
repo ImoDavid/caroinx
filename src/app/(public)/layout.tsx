@@ -24,11 +24,18 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
       >
         Skip to main content
       </a>
-      <SiteHeader />
-      <main id="main" className="min-h-[calc(100vh-20rem)] w-full bg-surface pt-header">
-        {children}
-      </main>
-      <SiteFooter />
+      {/* `light-only` pins the semantic tokens to their light values inside the
+          public subtree. The marketing design is light-only and paints with the
+          brand tokens, which cannot respond to `dark` anyway — this makes that
+          guarantee hold even if a semantic-token utility is added here later,
+          while the admin is in dark mode. */}
+      <div className="light-only flex flex-1 flex-col bg-surface text-on-surface">
+        <SiteHeader />
+        <main id="main" className="min-h-[calc(100vh-20rem)] w-full bg-surface pt-header">
+          {children}
+        </main>
+        <SiteFooter />
+      </div>
     </>
   );
 }

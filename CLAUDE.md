@@ -13,23 +13,30 @@ does not yet need.
 
 It has two experiences:
 
-- **Public** (no login): landing page — **built**. About, contact, and public code lookup —
+- **Public** (no login): landing page — **built**. About, contact, and public tracking lookup —
   **not built**.
-- **Admin** (login required): password sign-in and a dashboard — **built**. Creating, viewing,
-  updating and deleting codes — **not built**.
+- **Admin** (login required): password sign-in, an application shell, and full shipment
+  management — **built**.
 
 ### What exists today
 
-| Area                                           | State                                                          |
-| ---------------------------------------------- | -------------------------------------------------------------- |
-| Marketing landing page at `/`                  | Built (`src/app/(public)/`)                                    |
-| Admin login + session + protected dashboard    | Built (`src/app/admin/`)                                       |
-| MongoDB connection, env validation, logging    | Built (`src/lib/`)                                             |
-| Admin seeding + index management               | Built (`scripts/`)                                             |
-| Test foundation (86 tests)                     | Built (`tests/`)                                               |
-| `Code` model, public lookup, code CRUD         | **Deliberately absent** — next piece of work                   |
-| `src/services/`, `src/models/`                 | **Deliberately empty** — no business logic yet to justify them |
-| Email transport (password reset, verification) | **Deliberately absent**                                        |
+| Area                                             | State                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| Marketing landing page at `/`                    | Built (`src/app/(public)/`)                                  |
+| Admin login + session                            | Built (`src/app/admin/login/`)                               |
+| Admin shell (sidebar, topbar, dark mode)         | Built (`src/app/admin/(dashboard)/`, `components/admin/`)    |
+| Overview page at `/admin`                        | Built                                                        |
+| Shipment CRUD + status history at `/admin/cargo` | Built (`models/Shipment.ts`, `services/shipment.service.ts`) |
+| MongoDB connection, env validation, logging      | Built (`src/lib/`)                                           |
+| Admin seeding + index management                 | Built (`scripts/`)                                           |
+| Test foundation (120 tests)                      | Built (`tests/`)                                             |
+| **Public** tracking lookup                       | **Deliberately absent** — next piece of work                 |
+| Shipment photo upload                            | **Deferred** — pending image hosting (Cloudinary)            |
+| Email transport (password reset, verification)   | **Deliberately absent**                                      |
+
+> Naming: the masterplan calls the record a `Code`. It is implemented as **`Shipment`**, whose
+> `trackingCode` field is the public handle, because the record carries sender, receiver and
+> freight details — it is a consignment, not a bare code.
 
 ## Architecture
 
@@ -49,10 +56,12 @@ MongoDB Atlas
 ```
 
 - **Server Components by default.** `"use client"` only where genuinely needed; keep client
-  boundaries small. Today exactly two client modules exist: `src/app/admin/login/login-form.tsx`
-  and the marketing `tracking-console.tsx`.
-- **Server Actions** for mutations (login, sign-out). **Route Handlers** only where an HTTP
-  surface is genuinely required — today exactly one: `src/app/api/auth/[...all]/route.ts`.
+  boundaries small. Client modules are the marketing `tracking-console.tsx`, the login form, and
+  the interactive admin pieces in `src/components/admin/` (sidebar, menus, forms, filters). Pages,
+  tables and timelines all stay on the server.
+- **Server Actions** for mutations (login, sign-out, and all shipment create/update/status/delete).
+  **Route Handlers** only where an HTTP surface is genuinely required — today exactly one:
+  `src/app/api/auth/[...all]/route.ts`.
 - **Authentication:** better-auth 1.7 with email/password and database-backed sessions, using the
   MongoDB adapter over the Mongoose connection.
 - **Validation:** Zod at every server boundary. TypeScript types are not runtime validation.
@@ -81,20 +90,23 @@ during render) — the next successful login overwrites it.
 
 ## Directory conventions
 
-| Path                        | Purpose                                                                           |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `src/app/(public)/`         | Public pages. A route group, so it contributes nothing to the URL.                |
-| `src/app/admin/`            | Admin pages. Each one calls `requireAdmin()`.                                     |
-| `src/app/api/`              | Route Handlers. Only where HTTP is the right interface.                           |
-| `src/components/ui/`        | shadcn primitives. **Owned by the shadcn CLI — do not edit; it overwrites them.** |
-| `src/components/marketing/` | Landing-page sections.                                                            |
-| `src/lib/`                  | Cross-cutting infrastructure (see below).                                         |
-| `src/models/`               | Mongoose models. Empty; server-only when populated.                               |
-| `src/services/`             | Business logic. Empty. **Must not import `next/*`** so it stays testable.         |
-| `src/validations/`          | Zod schemas shared by client forms and server boundaries.                         |
-| `src/types/`                | Shared types. Create only when something actually needs sharing.                  |
-| `scripts/`                  | Operator tools run from a terminal. `console` output is the point.                |
-| `tests/`                    | `unit/` (no I/O), `integration/` (in-memory MongoDB), `components/` (jsdom).      |
+| Path                         | Purpose                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `src/app/(public)/`          | Public pages. A route group, so it contributes nothing to the URL.                   |
+| `src/app/admin/login/`       | Sign-in. Sits OUTSIDE the `(dashboard)` group so it gets no shell.                   |
+| `src/app/admin/(dashboard)/` | Every authenticated admin screen. Shares the sidebar/topbar shell layout.            |
+| `src/app/api/`               | Route Handlers. Only where HTTP is the right interface.                              |
+| `src/components/ui/`         | shadcn primitives. **Owned by the shadcn CLI — do not edit; it overwrites them.**    |
+| `src/hooks/`                 | Also **shadcn-CLI-owned** (`use-mobile.ts`). Same rule: do not hand-edit.            |
+| `src/components/admin/`      | Admin shell + shipment UI. Covered by the client-import lint glob.                   |
+| `src/components/marketing/`  | Landing-page sections.                                                               |
+| `src/lib/`                   | Cross-cutting infrastructure (see below).                                            |
+| `src/models/`                | Mongoose models (`Shipment.ts`). Server-only.                                        |
+| `src/services/`              | Business logic. **Must not import `next/*`** so it stays testable.                   |
+| `src/validations/`           | Zod schemas shared by client forms and server boundaries.                            |
+| `src/types/`                 | Plain DTO shapes components render. Client code imports these, never `@/services/*`. |
+| `scripts/`                   | Operator tools run from a terminal. `console` output is the point.                   |
+| `tests/`                     | `unit/` (no I/O), `integration/` (in-memory MongoDB), `components/` (jsdom).         |
 
 `src/lib/` modules:
 
@@ -111,6 +123,43 @@ during render) — the next successful login overwrites it.
 
 **The import paths named in `eslint.config.mjs` are the contract.** Use those exact specifiers;
 inventing parallel ones leaves the lint rules dead.
+
+### Theming: two palettes, one wall
+
+`src/app/globals.css` holds **two** token systems and they are not interchangeable:
+
+| Block                | Owns                  | Responds to `dark`?          |
+| -------------------- | --------------------- | ---------------------------- |
+| brand `@theme { … }` | the marketing site    | **No** — literal hex         |
+| `:root` / `.dark`    | the admin app         | Yes — brand palette in OKLCH |
+| `.light-only`        | the wall between them | pins light inside `(public)` |
+
+- **Admin UI must use the semantic tokens** (`bg-background`, `bg-card`, `bg-sidebar`,
+  `text-muted-foreground`, `border-border`). A brand colour token in admin UI will not flip.
+- The **type-scale and spacing tokens are theme-independent** (`text-headline-md`,
+  `space-y-space-*`, `px-margin`) — keep reusing them everywhere.
+- In dark mode `--primary` is **gold**, not navy: navy-on-navy is invisible, so the brand's other
+  colour carries primary weight.
+- `@custom-variant dark (&:is(.dark *))` matches only **descendants** of `.dark`, so a `dark:`
+  utility on `<html>` itself silently does nothing.
+- `next-themes` mounts in the **root** layout (it mutates `document.documentElement`, so
+  `suppressHydrationWarning` must be on `<html>`).
+
+### The admin shell
+
+- `src/app/admin/(dashboard)/layout.tsx` calls **`verifySession()`, not `requireAdmin()`** — a
+  display read for the topbar's user menu, never an authorization check. It cannot redirect, it is
+  `cache()`-wrapped so it shares the page's lookup, and the null branch renders nothing. Every page
+  leaf still calls `requireAdmin()`.
+- **The topbar owns the single `<h1>`**, derived from `components/admin/nav-items.ts`. Admin pages
+  start their headings at `<h2>`.
+- Nav active state uses **`useSelectedLayoutSegment()`**, not `usePathname()` — it returns `null`
+  at `/admin` and `"cargo"` at `/admin/cargo`, so Overview needs no exact-match special case.
+- `SidebarProvider` does **not** supply a `TooltipProvider` in this shadcn style, and `Tooltip`
+  does not self-wrap one — the shell mounts it, and component tests must too.
+- shadcn's `SidebarMenuButton` sets `data-active={isActive}`, which React renders as the string
+  `"false"`, while its own variants use `data-active:` (a **presence** check). Inactive items
+  therefore need `data-active={isActive || undefined}` to drop the attribute entirely.
 
 ## Security rules
 
@@ -174,6 +223,20 @@ Project-specific:
     ignores tsconfig paths), imports need explicit `.ts` extensions, and `enum` is unsupported.
 20. **Admin pages must stay `dynamic = "force-dynamic"`.** Without it, `next build` prerenders
     them, which executes the session read and tries to open a database connection at build time.
+    The `(dashboard)` layout needs it too — it reads `cookies()` and the session.
+21. **Client components must not import `@/services/*`, even for a type.** Import the DTO from
+    `@/types/shipment` instead; eslint enforces this and it is why that file exists.
+22. **Optional Zod fields need `.optional()` OUTERMOST.** Putting it before `.transform()` yields a
+    required key whose value may be `undefined`, forcing callers to write `note: undefined`.
+23. **Tracking codes are generated server-side**, never accepted from a client, using
+    `randomInt` over an alphabet with no I/L/O/U. The unique index is the real guarantee; the
+    create retry only turns a rare collision into a retry.
+24. **Status changes are append-only.** `updateShipmentStatus` pushes onto `statusHistory` rather
+    than overwriting, because that history is what the public timeline will render and it cannot be
+    backfilled. Transitions are deliberately not restricted to moving forward — an operator must be
+    able to correct a mistake.
+25. **Deletion is permanent** and confirmed by an `AlertDialog` naming the tracking code. There is
+    no archive/soft-delete.
 
 ## Decision-making rules
 
@@ -206,7 +269,18 @@ Project-specific:
    render). The next successful login overwrites it. The proxy's one-directional rule means this
    is harmless.
 5. **The `(public)` restructure has no render test.** `typecheck` proves the route literals resolve
-   and `build` proves the route table, but nothing asserts `/` renders identically.
+   and `build` proves the route table, but nothing asserts `/` renders identically. This now also
+   covers the `.light-only` wrapper and the root `<body>` token change — verify `/` by eye, in both
+   themes, after touching either.
+6. **No visual/responsive verification has been run** on the admin shell or the cargo module. The
+   checks and build pass, but nothing has been viewed in a browser at 320/375/768/1024/1440.
+7. **`SidebarTrigger` has no `aria-expanded`/`aria-controls`** — adding them means forking a
+   CLI-owned file. The labelled Collapse/Expand button in the sidebar footer carries the announced
+   state instead.
+8. **Shipment photos are deferred** pending image hosting. The create form says so; the schema has
+   no field for it yet, deliberately.
+9. **Pagination uses `skip`/`limit`.** Fine at current volumes; revisit with a cursor if a deep
+   page ever gets slow. Do not pre-optimise this.
 
 ## Operations
 

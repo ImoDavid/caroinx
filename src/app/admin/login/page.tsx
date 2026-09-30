@@ -30,8 +30,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
     <div className="flex flex-1 items-center justify-center px-margin py-space-2xl">
       <div className="w-full max-w-sm space-y-space-lg">
         <div className="space-y-space-xs text-center">
-          <h1 className="font-display text-headline-md text-primary-container">Admin sign in</h1>
-          <p className="text-body-sm text-text-muted">
+          {/* Semantic tokens, not the light-only brand ones: this page renders
+              on a navy background in dark mode. */}
+          <h1 className="font-display text-headline-md text-foreground">Admin sign in</h1>
+          <p className="text-body-sm text-muted-foreground">
             Authorised personnel only. Accounts are provisioned by an administrator.
           </p>
         </div>

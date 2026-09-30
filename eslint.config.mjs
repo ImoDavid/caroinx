@@ -95,6 +95,8 @@ const eslintConfig = defineConfig([
   {
     files: [
       "src/components/**/*.{ts,tsx}",
+      // shadcn-CLI-owned client hooks (use-mobile.ts and any future ones).
+      "src/hooks/**/*.{ts,tsx}",
       "src/lib/auth/auth-client.ts",
       "src/lib/forms.ts",
       "src/app/**/*-form.tsx",
@@ -126,6 +128,18 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
+    },
+  },
+
+  // Generated, CLI-owned code. `shadcn add` writes these files verbatim from the
+  // registry and we do not hand-edit them (an edit would be lost the next time
+  // the CLI is asked to refresh one), so we cannot fix lint findings inside them.
+  // Scoped to the single rule the generated output actually trips — everything
+  // else still applies.
+  {
+    files: ["src/components/ui/**/*.{ts,tsx}", "src/hooks/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 

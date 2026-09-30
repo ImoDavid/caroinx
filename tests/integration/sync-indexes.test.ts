@@ -45,7 +45,8 @@ describe("syncIndexes", () => {
 
     expect(conflicts).toBe(0);
     expect(results.every((result) => result.outcome === "created")).toBe(true);
-    expect(results).toHaveLength(9);
+    // 9 better-auth indexes + 3 for shipments.
+    expect(results).toHaveLength(12);
   });
 
   it("puts a unique index on user.email", async () => {
@@ -67,6 +68,31 @@ describe("syncIndexes", () => {
   it("indexes account and verification lookups", async () => {
     expect(await indexNames("account")).toContain("account_providerId_accountId_idx");
     expect(await indexNames("verification")).toContain("verification_identifier_idx");
+  });
+
+  it("indexes shipments for lookup and for the default list view", async () => {
+    const names = await indexNames("shipments");
+    expect(names).toContain("shipment_trackingCode_uidx");
+    expect(names).toContain("shipment_createdAt_idx");
+    expect(names).toContain("shipment_status_createdAt_idx");
+
+    const codeIndex = (await listIndexDocs("shipments")).find(
+      (index) => index.name === "shipment_trackingCode_uidx",
+    );
+    expect(codeIndex?.unique).toBe(true);
+  });
+
+  it("actually enforces the unique constraint on shipment.trackingCode", async () => {
+    // This is what makes the create-retry in shipment.service.ts safe, and what
+    // guarantees a public lookup resolves to exactly one shipment.
+    await db.collection("shipments").deleteMany({});
+    await db.collection("shipments").insertOne({ trackingCode: "TGR-8F3K2QD7" });
+
+    await expect(
+      db.collection("shipments").insertOne({ trackingCode: "TGR-8F3K2QD7" }),
+    ).rejects.toMatchObject({ code: 11000 });
+
+    await db.collection("shipments").deleteMany({});
   });
 
   it("is idempotent: a second run reports every index as existing", async () => {

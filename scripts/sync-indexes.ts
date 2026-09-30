@@ -46,6 +46,26 @@ const INDEXES: readonly IndexDefinition[] = [
   // Created by better-auth only when rateLimit.storage === "database", which is
   // how this app configures it in production.
   { collection: "rateLimit", keys: { key: 1 }, name: "rateLimit_key_uidx", unique: true },
+
+  // Application models. Declared here as well as on the Mongoose schema because
+  // lib/db.ts sets autoIndex: false in production, and this script runs on its
+  // own connection where the models are never registered.
+  //
+  // The unique index on trackingCode is load-bearing: it is what makes the
+  // create-retry in shipment.service.ts safe against a code collision, and what
+  // guarantees a public lookup resolves to exactly one shipment.
+  {
+    collection: "shipments",
+    keys: { trackingCode: 1 },
+    name: "shipment_trackingCode_uidx",
+    unique: true,
+  },
+  { collection: "shipments", keys: { createdAt: -1 }, name: "shipment_createdAt_idx" },
+  {
+    collection: "shipments",
+    keys: { status: 1, createdAt: -1 },
+    name: "shipment_status_createdAt_idx",
+  },
 ];
 
 type Outcome = "created" | "exists" | "conflict";
@@ -137,7 +157,9 @@ async function main(): Promise<number> {
       console.log(`  ${label} ${result.name}${result.detail ? ` — ${result.detail}` : ""}`);
     }
 
-    // Applies to Mongoose models only; there are none yet. Deliberately NOT
+    // Applies to any Mongoose model registered on THIS connection — normally
+    // none, since the script does not import the app's models. The explicit
+    // list above is what actually covers them. Deliberately NOT
     // connection.syncIndexes(), which DROPS indexes absent from the schema and
     // would be a destructive operation against production data.
     for (const model of Object.values(connection.models)) {

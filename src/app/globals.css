@@ -12,9 +12,21 @@
    arbitrary values can reach, e.g. the pre-footer dot pattern.
 
    This palette is light-only by design: every token is a single literal with no
-   `.dark` counterpart, so it cannot respond to the `dark` variant. The shadcn
-   oklch tokens and the `.dark` block below are untouched and remain correct for
-   application UI.
+   `.dark` counterpart, so it cannot respond to the `dark` variant.
+
+   That is the division of labour in this file, and it is load-bearing:
+
+     * THIS block (brand `@theme`)  -> the marketing site. Light-only literals.
+     * `:root` / `.dark` below      -> the admin application. The same brand
+                                       palette expressed in OKLCH, and therefore
+                                       theme-responsive.
+     * `.light-only`                -> the wall between them, applied to the
+                                       public layout.
+
+   So: admin UI must use the semantic tokens (`bg-background`, `bg-card`,
+   `bg-sidebar`, `text-muted-foreground`, `border-border`). A brand colour token
+   in admin UI will NOT flip in dark mode. The type-scale and spacing tokens
+   below are theme-independent and should be reused everywhere.
 
    Note `primary`/`secondary` from the mockup are deliberately renamed to
    `brand-black`/`brand-olive`: shadcn already owns `--color-primary` and
@@ -174,73 +186,144 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ---------------------------------------------------------------------------
+   Application (admin) theme — the shadcn semantic tokens, retinted to the brand.
+
+   These are NOT stock shadcn neutrals any more. Each light value is the OKLCH
+   conversion of the corresponding brand hex above, so the admin *is* the brand
+   palette rather than a grey template wearing it:
+
+     --background/--card  = surface-white  #ffffff
+     --foreground         = on-surface     #131b2e
+     --primary            = primary-container #0d1252 (navy)
+     --muted/--secondary  = surface-container-low  #f2f3ff
+     --muted-foreground   = text-muted     #64748b
+     --accent             = surface-container      #eaedff
+     --border/--input     = border-subtle  #e2e8f0
+     --sidebar-accent     = surface-container-highest #dae2fd
+     --chart-1            = secondary-container #f8e138 (gold)
+
+   Dark mode is built from the brand's own deep navies (brand-void #010328,
+   brand-abyss #02054a), so it reads as this product and not a generic dark
+   theme. The whole neutral ramp stays on the navy hue (~271) with chroma
+   scaled by how structural the surface is.
+
+   `--destructive` keeps its stock red on purpose (a danger colour must not be
+   brand-tinted) and `--radius` is unchanged (see the brand comment above).
+
+   NOTE ON `variant="inset"`: shadcn paints the PAGE with `bg-sidebar` and the
+   floating panel with `bg-background`. So `--sidebar` is the tinted page colour
+   and `--background` is the panel — not the other way round.
+   --------------------------------------------------------------------------- */
 :root {
+  /* Native scrollbars, form controls and <select> popups follow the theme. */
+  color-scheme: light;
+
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.225 0.039 266);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.225 0.039 266);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.225 0.039 266);
+  --primary: oklch(0.234 0.114 270.5);
+  --primary-foreground: oklch(0.985 0.004 271);
+  --secondary: oklch(0.967 0.016 282);
+  --secondary-foreground: oklch(0.234 0.114 270.5);
+  --muted: oklch(0.967 0.016 282);
+  --muted-foreground: oklch(0.554 0.041 257);
+  --accent: oklch(0.949 0.024 278);
+  --accent-foreground: oklch(0.234 0.114 270.5);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.929 0.013 256);
+  --input: oklch(0.929 0.013 256);
+  --ring: oklch(0.55 0.13 270.5);
+  --chart-1: oklch(0.902 0.174 101);
+  --chart-2: oklch(0.234 0.114 270.5);
+  --chart-3: oklch(0.44 0.13 271);
+  --chart-4: oklch(0.62 0.11 271);
+  --chart-5: oklch(0.79 0.07 271);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.967 0.016 282);
+  --sidebar-foreground: oklch(0.42 0.045 265);
+  --sidebar-primary: oklch(0.234 0.114 270.5);
+  --sidebar-primary-foreground: oklch(0.985 0.004 271);
+  --sidebar-accent: oklch(0.915 0.038 272.5);
+  --sidebar-accent-foreground: oklch(0.234 0.114 270.5);
+  --sidebar-border: oklch(0.929 0.013 256);
+  --sidebar-ring: oklch(0.55 0.13 270.5);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  color-scheme: dark;
+
+  --background: oklch(0.21 0.032 271);
+  --foreground: oklch(0.968 0.006 271);
+  --card: oklch(0.245 0.034 271);
+  --card-foreground: oklch(0.968 0.006 271);
+  --popover: oklch(0.245 0.034 271);
+  --popover-foreground: oklch(0.968 0.006 271);
+  /* Gold, not navy: navy-on-navy is invisible, so the brand's other colour
+     carries primary weight in dark mode (~12:1 against the panel). */
+  --primary: oklch(0.902 0.174 101);
+  --primary-foreground: oklch(0.234 0.114 270.5);
+  --secondary: oklch(0.275 0.036 271);
+  --secondary-foreground: oklch(0.968 0.006 271);
+  --muted: oklch(0.275 0.036 271);
+  --muted-foreground: oklch(0.715 0.026 271);
+  --accent: oklch(0.285 0.04 271);
+  --accent-foreground: oklch(0.968 0.006 271);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: oklch(0.92 0.02 271 / 14%);
+  --input: oklch(0.92 0.02 271 / 18%);
+  --ring: oklch(0.64 0.11 271);
+  --chart-1: oklch(0.902 0.174 101);
+  --chart-2: oklch(0.72 0.12 271);
+  --chart-3: oklch(0.6 0.11 271);
+  --chart-4: oklch(0.47 0.09 271);
+  --chart-5: oklch(0.36 0.07 271);
+  --sidebar: oklch(0.155 0.03 271);
+  --sidebar-foreground: oklch(0.78 0.02 271);
+  --sidebar-primary: oklch(0.902 0.174 101);
+  --sidebar-primary-foreground: oklch(0.234 0.114 270.5);
+  --sidebar-accent: oklch(0.265 0.045 271);
+  --sidebar-accent-foreground: oklch(0.985 0.005 271);
+  --sidebar-border: oklch(0.92 0.02 271 / 10%);
+  --sidebar-ring: oklch(0.64 0.11 271);
+}
+
+/* ---------------------------------------------------------------------------
+   The wall between the two palettes.
+
+   The marketing site is a light-only design. It currently uses only the brand
+   tokens above (literal hex, no `.dark` counterparts), so a `dark` class on
+   <html> cannot change it today. This class re-asserts the light values inside
+   the public subtree anyway, so that a future `bg-card` or `dark:` utility
+   added there still renders light instead of silently inverting.
+
+   Custom properties inherit, so this beats anything coming from <html class="dark">.
+   Keep it in sync with `:root`.
+   --------------------------------------------------------------------------- */
+.light-only {
+  color-scheme: light;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.225 0.039 266);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.225 0.039 266);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.225 0.039 266);
+  --primary: oklch(0.234 0.114 270.5);
+  --primary-foreground: oklch(0.985 0.004 271);
+  --secondary: oklch(0.967 0.016 282);
+  --secondary-foreground: oklch(0.234 0.114 270.5);
+  --muted: oklch(0.967 0.016 282);
+  --muted-foreground: oklch(0.554 0.041 257);
+  --accent: oklch(0.949 0.024 278);
+  --accent-foreground: oklch(0.234 0.114 270.5);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.929 0.013 256);
+  --input: oklch(0.929 0.013 256);
+  --ring: oklch(0.55 0.13 270.5);
 }
 
 @layer base {
@@ -252,5 +335,15 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* The sidebar's width/transform animations live in the shadcn-CLI-owned
+   sidebar.tsx, which must not be edited. Neutralise them here instead; our own
+   transitions are written with `motion-safe:` and need no counterpart. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sidebar-container"],
+  [data-slot="sidebar-gap"] {
+    transition: none;
   }
 }
