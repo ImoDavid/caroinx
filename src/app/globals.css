@@ -336,6 +336,55 @@
   html {
     @apply font-sans;
   }
+  /* The open dropdown of a native <select> is painted by the browser, not by the
+     page, and Chrome derives its colours from the control's own background —
+     ignoring `color-scheme: dark` once any background-color is set. Without
+     these two rules a dark-mode dropdown opens onto a white sheet with white
+     text. Firefox needs the same on Linux. Pinned to the semantic tokens so it
+     follows the theme; see components/admin/native-select.tsx for the other half. */
+  select option {
+    @apply bg-background text-foreground;
+  }
+  select option:checked {
+    @apply bg-accent text-accent-foreground;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Print — the "Print receipt" action on the public tracking page.
+
+   Driven by `data-print` attributes rather than by element or class selectors,
+   so this block says nothing about the page structure and cannot be silently
+   broken by a refactor. There is no /track/print route: one would duplicate
+   every component and double the database read to save these few rules.
+   --------------------------------------------------------------------------- */
+@page {
+  margin: 12mm;
+}
+
+@media print {
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* The public <main> pads down by the fixed header's height. With the header
+     hidden, that is 7.5rem of blank paper before the first line. */
+  [data-print="sheet"] {
+    padding-top: 0 !important;
+    min-height: 0 !important;
+  }
+
+  /* Browsers drop backgrounds by default, which would turn the navy summary
+     band, the amber customs panel and the world map into white-on-white. */
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* A receipt should not split a card across two sheets. */
+  [data-print="block"] {
+    break-inside: avoid;
+  }
 }
 
 /* The sidebar's width/transform animations live in the shadcn-CLI-owned

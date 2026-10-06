@@ -1,17 +1,24 @@
 import { ChevronDown, Headset, Languages, Menu, Search } from "lucide-react";
+import Link from "next/link";
 
 import { BrandCta } from "./brand-cta";
 import { BrandLogo } from "./brand-logo";
 
 const NAV_LINKS = [
-  { label: "Services", hasChevron: true },
-  { label: "Tracking", hasChevron: false },
-  { label: "Company", hasChevron: false },
+  // TODO(nav): Services has no page yet and no dropdown panel.
+  { label: "Services", href: "#", hasChevron: true },
+  { label: "Tracking", href: "/track", hasChevron: false },
+  { label: "Company", href: "/about", hasChevron: false },
+  { label: "Contact", href: "/contact", hasChevron: false },
 ] as const;
 
 export function SiteHeader() {
   return (
-    <header className="fixed top-0 z-50 w-full shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+    // data-print="hide": site chrome is not part of a printed tracking receipt.
+    <header
+      data-print="hide"
+      className="fixed top-0 z-50 w-full shadow-[0_1px_8px_rgba(0,0,0,0.06)]"
+    >
       {/* Utility bar */}
       <div className="border-b border-border-dark bg-primary-container text-on-primary-fixed">
         <div className="mx-auto flex h-10 max-w-7xl items-center justify-between gap-space-sm px-margin text-label-sm md:px-margin-tablet lg:px-margin-desktop">
@@ -35,32 +42,32 @@ export function SiteHeader() {
       {/* Primary bar */}
       <div className="border-b border-border-subtle bg-surface-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-space-sm px-margin md:px-margin-tablet lg:px-margin-desktop">
-          <a href="#" className="shrink-0">
+          <Link href="/" className="shrink-0">
             <BrandLogo tone="onLight" />
-          </a>
+          </Link>
 
           <nav aria-label="Main" className="hidden items-center gap-space-lg lg:flex">
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 className="flex items-center gap-1 text-body-sm text-on-surface-variant transition-colors hover:text-on-surface"
-                href="#"
+                href={link.href}
               >
                 {link.label}
-                {link.hasChevron ? <ChevronDown className="size-4" /> : null}
-              </a>
+                {link.hasChevron ? <ChevronDown className="size-4" aria-hidden="true" /> : null}
+              </Link>
             ))}
           </nav>
 
           <div className="flex shrink-0 items-center gap-space-xs sm:gap-space-sm">
-            <a
+            <Link
               className="flex min-h-11 items-center gap-space-xs rounded-lg border border-border-subtle bg-surface-container-low px-space-sm text-body-sm font-medium text-on-surface transition-colors hover:bg-surface-container sm:px-space-md"
-              href="#"
+              href="/track"
             >
-              <Search className="size-[18px] shrink-0 text-text-muted" />
+              <Search className="size-[18px] shrink-0 text-text-muted" aria-hidden="true" />
               <span className="hidden sm:inline">Quick Track</span>
               <span className="sr-only sm:hidden">Quick Track</span>
-            </a>
+            </Link>
             <BrandCta size="md" href="#" className="min-h-11">
               Request Quote
             </BrandCta>

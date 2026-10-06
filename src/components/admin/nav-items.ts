@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, type LucideIcon } from "lucide-react";
+import { Inbox, LayoutDashboard, Package, type LucideIcon } from "lucide-react";
 
 export type AdminNavItem = {
   /**
@@ -18,6 +18,7 @@ export type AdminNavItem = {
 export const ADMIN_NAV = [
   { segment: null, href: "/admin", label: "Overview", icon: LayoutDashboard },
   { segment: "cargo", href: "/admin/cargo", label: "Cargo", icon: Package },
+  { segment: "inbox", href: "/admin/inbox", label: "Inbox", icon: Inbox },
 ] as const satisfies readonly AdminNavItem[];
 
 /**

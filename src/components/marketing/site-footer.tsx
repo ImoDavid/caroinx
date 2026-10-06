@@ -1,44 +1,57 @@
 import { type LucideIcon, PlaneTakeoff, Shield } from "lucide-react";
+import Link from "next/link";
 
 import { BRAND } from "./brand";
 import { BrandLogo } from "./brand-logo";
 
+/**
+ * `{ label, href }` rather than a bare string because some destinations now
+ * exist. This matters more than it looks: `SiteHeader`'s nav is `hidden …
+ * lg:flex` and its mobile `Menu` button has no panel, so below 1024px the
+ * Company column below is the ONLY way to reach `/about` and `/contact`.
+ */
+type FooterLink = {
+  readonly label: string;
+  readonly href: string;
+};
+
 type FooterColumn = {
   readonly heading: string;
-  readonly links: readonly string[];
+  readonly links: readonly FooterLink[];
 };
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     heading: "Solutions",
     links: [
-      "Air Cargo Direct",
-      "Ocean Freight FCL/LCL",
-      "Intermodal Road Freight",
-      "Diplomatic Courier",
-      "Cold Chain Storage",
-      "Customs Brokerage",
+      { label: "Air Cargo Direct", href: "#" },
+      { label: "Ocean Freight FCL/LCL", href: "#" },
+      { label: "Intermodal Road Freight", href: "#" },
+      { label: "Diplomatic Courier", href: "#" },
+      { label: "Cold Chain Storage", href: "#" },
+      { label: "Customs Brokerage", href: "#" },
     ],
   },
   {
     heading: "Tracking & Tools",
     links: [
-      "Live GPS Telematics",
-      "Container Milestones",
-      "Air Waybill (AWB) Status",
-      "Freight Rate Calculator",
-      "Vessel & Fleet Schedules",
+      { label: "Live GPS Telematics", href: "#" },
+      { label: "Container Milestones", href: "#" },
+      { label: "Air Waybill (AWB) Status", href: "#" },
+      { label: "Freight Rate Calculator", href: "#" },
+      { label: "Vessel & Fleet Schedules", href: "#" },
     ],
   },
   {
     heading: "Company",
     links: [
-      "About True Global",
-      "Global Hub Network",
-      "ESG & Compliance",
-      "Safety Standards",
-      "Enterprise Case Studies",
-      "Careers & Leadership",
+      { label: "About True Global", href: "/about" },
+      { label: "Contact Us", href: "/contact" },
+      { label: "Global Hub Network", href: "#" },
+      { label: "ESG & Compliance", href: "#" },
+      { label: "Safety Standards", href: "#" },
+      { label: "Enterprise Case Studies", href: "#" },
+      { label: "Careers & Leadership", href: "#" },
     ],
   },
 ];
@@ -63,10 +76,19 @@ function FooterColumn({ column }: { column: FooterColumn }) {
       </h2>
       <ul className="space-y-space-xs text-body-sm text-white/70">
         {column.links.map((link) => (
-          <li key={link}>
-            <a className="transition-colors hover:text-secondary-container" href="#">
-              {link}
-            </a>
+          <li key={link.label}>
+            {/* next/link only for destinations that exist. A Link on a "#" href
+                would attach prefetch machinery to a no-op route — the same
+                reasoning brand-cta.tsx gives for staying a plain anchor. */}
+            {link.href.startsWith("/") ? (
+              <Link className="transition-colors hover:text-secondary-container" href={link.href}>
+                {link.label}
+              </Link>
+            ) : (
+              <a className="transition-colors hover:text-secondary-container" href={link.href}>
+                {link.label}
+              </a>
+            )}
           </li>
         ))}
       </ul>
@@ -76,7 +98,10 @@ function FooterColumn({ column }: { column: FooterColumn }) {
 
 export function SiteFooter() {
   return (
-    <footer className="w-full border-t border-border-dark bg-brand-abyss pt-space-2xl pb-space-xl text-white">
+    <footer
+      data-print="hide"
+      className="w-full border-t border-border-dark bg-brand-abyss pt-space-2xl pb-space-xl text-white"
+    >
       <div className="mx-auto max-w-7xl px-margin md:px-margin-tablet lg:px-margin-desktop">
         <div className="grid grid-cols-1 gap-gutter-desktop border-b border-border-dark pb-space-2xl md:grid-cols-2 lg:grid-cols-12">
           <div className="space-y-space-md lg:col-span-4">

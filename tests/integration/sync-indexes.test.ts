@@ -1,8 +1,17 @@
+import { ObjectId } from "mongodb";
 import type mongoose from "mongoose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { syncIndexes } from "../../scripts/sync-indexes.ts";
 import { openTestConnection } from "../helpers/db.ts";
+
+/*
+ * This file deliberately does NOT import any model. Doing so registers it on the
+ * app's cached connection, whose `autoIndex` is on outside production, and
+ * Mongoose would then create its own indexes in this file's database and race
+ * the script under test. The model/collection-name parity check that does need
+ * those imports lives in `model-collections.test.ts` for exactly that reason.
+ */
 
 /**
  * better-auth does NOT create the indexes its schema declares — its adapter only
@@ -45,8 +54,8 @@ describe("syncIndexes", () => {
 
     expect(conflicts).toBe(0);
     expect(results.every((result) => result.outcome === "created")).toBe(true);
-    // 9 better-auth indexes + 3 for shipments.
-    expect(results).toHaveLength(12);
+    // 9 better-auth indexes + 3 for shipments + 5 for chat.
+    expect(results).toHaveLength(17);
   });
 
   it("puts a unique index on user.email", async () => {
@@ -93,6 +102,47 @@ describe("syncIndexes", () => {
     ).rejects.toMatchObject({ code: 11000 });
 
     await db.collection("shipments").deleteMany({});
+  });
+
+  it("indexes chat conversations for the inbox list and the per-visitor cap", async () => {
+    const names = await indexNames("chatconversations");
+    expect(names).toContain("chat_conversation_visitorToken_uidx");
+    expect(names).toContain("chat_conversation_lastMessageAt_idx");
+    expect(names).toContain("chat_conversation_status_lastMessageAt_idx");
+    expect(names).toContain("chat_conversation_visitorId_createdAt_idx");
+  });
+
+  it("actually enforces the unique constraint on the visitor token", async () => {
+    // That token is the ONLY thing authorizing a read or a write of a
+    // conversation, so two documents sharing one would let either visitor read
+    // the other's thread — whichever findOne happened to return first.
+    await db.collection("chatconversations").deleteMany({});
+    await db.collection("chatconversations").insertOne({ visitorToken: "a".repeat(43) });
+
+    await expect(
+      db.collection("chatconversations").insertOne({ visitorToken: "a".repeat(43) }),
+    ).rejects.toMatchObject({ code: 11000 });
+
+    await db.collection("chatconversations").deleteMany({});
+  });
+
+  it("actually enforces one message per (conversation, seq)", async () => {
+    // This is what makes the cursor safe: a duplicate seq would either hide a
+    // message from the poll or reorder the thread, both silently.
+    await db.collection("chatmessages").deleteMany({});
+    const conversationId = new ObjectId();
+    await db.collection("chatmessages").insertOne({ conversationId, seq: 1 });
+
+    await expect(
+      db.collection("chatmessages").insertOne({ conversationId, seq: 1 }),
+    ).rejects.toMatchObject({ code: 11000 });
+
+    // The same seq under a DIFFERENT conversation is fine — seq is per-thread.
+    await expect(
+      db.collection("chatmessages").insertOne({ conversationId: new ObjectId(), seq: 1 }),
+    ).resolves.toBeTruthy();
+
+    await db.collection("chatmessages").deleteMany({});
   });
 
   it("is idempotent: a second run reports every index as existing", async () => {

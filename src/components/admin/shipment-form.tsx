@@ -6,6 +6,9 @@ import { useActionState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
+import { CountrySelect } from "@/components/admin/country-select";
+import { NativeSelect } from "@/components/admin/native-select";
+import { PhotoUploadField } from "@/components/admin/photo-upload-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,24 +26,40 @@ import type { ShipmentFormState } from "@/app/admin/(dashboard)/cargo/form-state
 
 type Values = z.input<typeof shipmentCreateSchema>;
 
-/** Dotted names match the FormData keys the Server Action reads. */
+/**
+ * Dotted names match the FormData keys the Server Action reads.
+ *
+ * Duplicated from `ShipmentField` in `cargo/form-state.ts` rather than imported,
+ * and must be kept in sync with it — see the note there on why a client module
+ * cannot reach into a `"use server"` file's siblings for a value.
+ */
 type FieldName =
   | "sender.name"
+  | "sender.country"
   | "sender.location"
   | "sender.phone"
   | "receiver.name"
+  | "receiver.country"
   | "receiver.location"
   | "receiver.phone"
   | "receiver.email"
   | "details.transportType"
   | "details.weightKg"
-  | "details.shipDate";
+  | "details.shipDate"
+  | "details.expectedDelivery"
+  | "photo";
 
 export type ShipmentFormProps = {
   action: (state: ShipmentFormState, formData: FormData) => Promise<ShipmentFormState>;
   mode: "create" | "edit";
   /** Present when editing; becomes the hidden `id` field. */
   shipmentId?: string;
+  /**
+   * Whether the shipment already carries a photo. A photo can be added once and
+   * then never replaced, so this hides the upload field rather than pre-filling
+   * it — a file input cannot be pre-filled anyway.
+   */
+  hasPhoto?: boolean;
   defaultValues: Values;
   cancelHref: string;
   submitLabel: string;
@@ -105,6 +124,7 @@ export function ShipmentForm({
   action,
   mode,
   shipmentId,
+  hasPhoto = false,
   defaultValues,
   cancelHref,
   submitLabel,
@@ -137,7 +157,10 @@ export function ShipmentForm({
   ): string | undefined => clientError?.message ?? state?.fieldErrors?.[name];
 
   return (
-    <form action={formAction} className="space-y-space-lg" noValidate>
+    // encType is load-bearing for the no-JavaScript path: React encodes Server
+    // Action submissions itself, so a missing encType is invisible with JS on,
+    // but a native POST would send only the file's NAME, not its bytes.
+    <form action={formAction} encType="multipart/form-data" className="space-y-space-lg" noValidate>
       {shipmentId ? <input type="hidden" name="id" value={shipmentId} /> : null}
 
       {state?.status === "error" && !state.fieldErrors ? (
@@ -183,15 +206,30 @@ export function ShipmentForm({
         </FieldShell>
 
         <FieldShell
+          name="sender.country"
+          label="Country"
+          error={errorFor("sender.country", errors.sender?.country)}
+        >
+          {(describedBy) => (
+            <CountrySelect
+              id="sender.country"
+              aria-invalid={Boolean(errorFor("sender.country", errors.sender?.country))}
+              aria-describedby={describedBy}
+              {...register("sender.country")}
+            />
+          )}
+        </FieldShell>
+
+        <FieldShell
           name="sender.location"
-          label="Location"
-          className="sm:col-span-2"
+          label="City or address"
           error={errorFor("sender.location", errors.sender?.location)}
         >
           {(describedBy) => (
             <Input
               id="sender.location"
               autoComplete="off"
+              placeholder="e.g. Lagos"
               className={CONTROL}
               aria-invalid={Boolean(errorFor("sender.location", errors.sender?.location))}
               aria-describedby={describedBy}
@@ -257,14 +295,30 @@ export function ShipmentForm({
         </FieldShell>
 
         <FieldShell
+          name="receiver.country"
+          label="Country"
+          error={errorFor("receiver.country", errors.receiver?.country)}
+        >
+          {(describedBy) => (
+            <CountrySelect
+              id="receiver.country"
+              aria-invalid={Boolean(errorFor("receiver.country", errors.receiver?.country))}
+              aria-describedby={describedBy}
+              {...register("receiver.country")}
+            />
+          )}
+        </FieldShell>
+
+        <FieldShell
           name="receiver.location"
-          label="Location"
+          label="City or address"
           error={errorFor("receiver.location", errors.receiver?.location)}
         >
           {(describedBy) => (
             <Input
               id="receiver.location"
               autoComplete="off"
+              placeholder="e.g. Accra"
               className={CONTROL}
               aria-invalid={Boolean(errorFor("receiver.location", errors.receiver?.location))}
               aria-describedby={describedBy}
@@ -281,14 +335,8 @@ export function ShipmentForm({
           error={errorFor("details.transportType", errors.details?.transportType)}
         >
           {(describedBy) => (
-            // A native <select> rather than the Radix one: it submits with the
-            // form without JavaScript and needs no RHF Controller wrapper.
-            <select
+            <NativeSelect
               id="details.transportType"
-              className={cn(
-                CONTROL,
-                "w-full rounded-lg border border-input bg-transparent px-2.5 text-base focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:text-sm dark:bg-input/30",
-              )}
               aria-describedby={describedBy}
               {...register("details.transportType")}
             >
@@ -297,7 +345,7 @@ export function ShipmentForm({
                   {TRANSPORT_TYPE_LABELS[type]}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           )}
         </FieldShell>
 
@@ -324,7 +372,6 @@ export function ShipmentForm({
         <FieldShell
           name="details.shipDate"
           label="Shipping date"
-          className="sm:col-span-2"
           error={errorFor("details.shipDate", errors.details?.shipDate)}
         >
           {(describedBy) => (
@@ -339,9 +386,58 @@ export function ShipmentForm({
           )}
         </FieldShell>
 
-        <p className="text-body-sm text-muted-foreground sm:col-span-2">
-          A shipment photo will be added here once image hosting is configured.
-        </p>
+        <FieldShell
+          name="details.expectedDelivery"
+          label="Expected delivery"
+          optional
+          error={errorFor("details.expectedDelivery", errors.details?.expectedDelivery)}
+        >
+          {(describedBy) => (
+            <Input
+              id="details.expectedDelivery"
+              type="date"
+              className={CONTROL}
+              aria-invalid={Boolean(
+                errorFor("details.expectedDelivery", errors.details?.expectedDelivery),
+              )}
+              aria-describedby={describedBy}
+              {...register("details.expectedDelivery")}
+            />
+          )}
+        </FieldShell>
+
+        {/* A photo can be ADDED once and then never changed, so the field appears
+            only while there is nothing to overwrite. That is also what removes the
+            ambiguity a file input otherwise has when editing: it cannot be
+            pre-filled, so "keep" and "remove" would be indistinguishable in a
+            no-JavaScript POST. The service enforces the same rule — the absent
+            field is UI, and a Server Action is a public endpoint. */}
+        {hasPhoto ? (
+          <p className="text-body-sm text-muted-foreground sm:col-span-2">
+            This shipment already has a photo, and it cannot be replaced — the record is the
+            evidence of what was consigned.
+          </p>
+        ) : (
+          <FieldShell
+            name="photo"
+            label="Shipment photo"
+            optional
+            className="sm:col-span-2"
+            error={errorFor("photo", undefined)}
+          >
+            {(describedBy) => (
+              // No register(): "photo" is not a key of shipmentCreateSchema, and
+              // React Hook Form cannot control a file input's value anyway. The
+              // plain name attribute is what puts the file into the FormData.
+              <PhotoUploadField
+                id="photo"
+                name="photo"
+                describedBy={describedBy}
+                invalid={Boolean(errorFor("photo", undefined))}
+              />
+            )}
+          </FieldShell>
+        )}
       </Section>
 
       {/* Editing never changes status — that has its own audited flow on the
@@ -350,20 +446,13 @@ export function ShipmentForm({
         <Section title="Shipment status" description="Where the consignment starts its journey.">
           <div className="space-y-space-xs sm:col-span-2">
             <Label htmlFor="status">Initial status</Label>
-            <select
-              id="status"
-              className={cn(
-                CONTROL,
-                "w-full rounded-lg border border-input bg-transparent px-2.5 text-base focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:text-sm dark:bg-input/30",
-              )}
-              {...register("status")}
-            >
+            <NativeSelect id="status" {...register("status")}>
               {SHIPMENT_STATUSES.map((status) => (
                 <option key={status} value={status}>
                   {SHIPMENT_STATUS_LABELS[status]}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         </Section>
       ) : null}

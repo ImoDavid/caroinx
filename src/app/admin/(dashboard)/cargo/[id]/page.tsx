@@ -4,14 +4,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/admin/copy-button";
+import { CountryLabel } from "@/components/admin/country-label";
 import { DeleteShipmentForm } from "@/components/admin/delete-shipment-form";
+import { ShipmentPhotoView } from "@/components/admin/shipment-photo";
 import { ShipmentStatusForm } from "@/components/admin/shipment-status-form";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { StatusTimeline } from "@/components/admin/status-timeline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/lib/auth/guards";
-import { formatDate, formatWeight } from "@/lib/format";
+import { formatAmount, formatDate, formatWeight } from "@/lib/format";
 import { getShipmentById } from "@/services/shipment.service";
 import { TRANSPORT_TYPE_LABELS } from "@/validations/shipment";
 
@@ -89,7 +91,11 @@ export default async function ShipmentDetailPage({ params }: PageProps<"/admin/c
             <CardContent>
               <dl className="space-y-space-sm">
                 <DetailRow label="Name" value={shipment.sender.name} />
-                <DetailRow label="Location" value={shipment.sender.location} />
+                <DetailRow
+                  label="Country"
+                  value={<CountryLabel code={shipment.sender.country} />}
+                />
+                <DetailRow label="City or address" value={shipment.sender.location} />
                 <DetailRow label="Phone" value={shipment.sender.phone ?? "—"} />
               </dl>
             </CardContent>
@@ -102,7 +108,11 @@ export default async function ShipmentDetailPage({ params }: PageProps<"/admin/c
             <CardContent>
               <dl className="space-y-space-sm">
                 <DetailRow label="Name" value={shipment.receiver.name} />
-                <DetailRow label="Location" value={shipment.receiver.location} />
+                <DetailRow
+                  label="Country"
+                  value={<CountryLabel code={shipment.receiver.country} />}
+                />
+                <DetailRow label="City or address" value={shipment.receiver.location} />
                 <DetailRow label="Phone" value={shipment.receiver.phone ?? "—"} />
                 <DetailRow
                   label="Email"
@@ -138,13 +148,42 @@ export default async function ShipmentDetailPage({ params }: PageProps<"/admin/c
                   label="Shipping date"
                   value={<time dateTime={shipment.shipDate}>{formatDate(shipment.shipDate)}</time>}
                 />
+                {/* Omitted rather than em-dashed when unset: an arrival date is
+                    genuinely optional, and this row is what the public tracking
+                    page mirrors. */}
+                {shipment.expectedDelivery ? (
+                  <DetailRow
+                    label="Expected delivery"
+                    value={
+                      <time dateTime={shipment.expectedDelivery}>
+                        {formatDate(shipment.expectedDelivery)}
+                      </time>
+                    }
+                  />
+                ) : null}
                 <DetailRow
                   label="Created"
                   value={
                     <time dateTime={shipment.createdAt}>{formatDate(shipment.createdAt)}</time>
                   }
                 />
+                {/* Only rendered when there is one: an em dash here would imply
+                    every shipment ought to have a customs charge. */}
+                {shipment.amount !== undefined ? (
+                  <DetailRow label="Customs charge" value={formatAmount(shipment.amount)} />
+                ) : null}
               </dl>
+            </CardContent>
+          </Card>
+
+          {/* In the wide column, not the narrow one: a photo in the sidebar would
+              render postage-stamp sized. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-title-sm">Photo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ShipmentPhotoView photo={shipment.photo} trackingCode={shipment.trackingCode} />
             </CardContent>
           </Card>
         </div>
@@ -159,6 +198,7 @@ export default async function ShipmentDetailPage({ params }: PageProps<"/admin/c
                 action={updateShipmentStatusAction}
                 shipmentId={shipment.id}
                 currentStatus={shipment.status}
+                currentAmount={shipment.amount}
               />
             </CardContent>
           </Card>

@@ -19,6 +19,11 @@ const SERVER_ONLY_IMPORTS = [
     name: "@/lib/env",
     message: "Server-only env. Client components may only read NEXT_PUBLIC_* via process.env.",
   },
+  {
+    name: "@/lib/cloudinary",
+    message:
+      "Cloudinary uploads are server-only: the module holds the API secret. Upload from a Server Action.",
+  },
 ];
 
 const SERVER_ONLY_PATTERNS = [

@@ -2,6 +2,7 @@ import "server-only";
 
 import { Schema, type InferSchemaType, type Model } from "mongoose";
 
+import { COUNTRY_CODES } from "@/lib/countries";
 import { connection } from "@/lib/db";
 import {
   DEFAULT_SHIPMENT_STATUS,
@@ -18,9 +19,16 @@ import {
  * index (CLAUDE.md rule 16).
  */
 
+/**
+ * `country` is the ISO 3166-1 alpha-2 code and is what the public tracking map
+ * will pin; `location` is the free-text city or address beside it, which is what
+ * a label and the list search need. Storing the code rather than a name keeps the
+ * value stable if a country is renamed, and keeps it joinable to coordinates.
+ */
 const partySchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
+    country: { type: String, enum: COUNTRY_CODES, required: true, uppercase: true, trim: true },
     location: { type: String, required: true, trim: true },
     phone: { type: String, trim: true },
   },
@@ -30,6 +38,7 @@ const partySchema = new Schema(
 const receiverSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
+    country: { type: String, enum: COUNTRY_CODES, required: true, uppercase: true, trim: true },
     location: { type: String, required: true, trim: true },
     phone: { type: String, trim: true },
     email: { type: String, trim: true, lowercase: true },
@@ -53,6 +62,24 @@ const statusEventSchema = new Schema(
   { _id: false },
 );
 
+/**
+ * A Cloudinary-hosted photo of the consignment. Optional as a whole — not every
+ * shipment is photographed, and records created before this field existed simply
+ * carry no subdocument — but every field inside it is required, because a photo
+ * with no `url` is worse than no photo at all.
+ *
+ * Deliberately no index: nothing queries, filters or sorts on it.
+ */
+const photoSchema = new Schema(
+  {
+    url: { type: String, required: true, trim: true },
+    publicId: { type: String, required: true, trim: true },
+    width: { type: Number, required: true, min: 1 },
+    height: { type: Number, required: true, min: 1 },
+  },
+  { _id: false },
+);
+
 const shipmentSchema = new Schema(
   {
     trackingCode: {
@@ -67,6 +94,19 @@ const shipmentSchema = new Schema(
     transportType: { type: String, enum: TRANSPORT_TYPES, required: true },
     weightKg: { type: Number, required: true, min: 0 },
     shipDate: { type: Date, required: true },
+    /**
+     * When the consignment is expected to arrive. Optional — it is not always
+     * known at booking, and the public tracking page omits the row rather than
+     * showing a guess. Deliberately no index: nothing queries or sorts on it.
+     */
+    expectedDelivery: { type: Date },
+    photo: { type: photoSchema },
+    /**
+     * The customs charge in USD, set only while the status is `customs_held` (the
+     * status service enforces that). Absent means no charge was recorded, which is
+     * why it is optional rather than defaulting to 0 — zero is a real amount.
+     */
+    amount: { type: Number, min: 0 },
     status: {
       type: String,
       enum: SHIPMENT_STATUSES,

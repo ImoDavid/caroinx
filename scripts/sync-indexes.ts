@@ -25,8 +25,13 @@ type IndexDefinition = {
  * Names follow better-auth's own convention, `<table>_<column>_<uidx|idx>`, so
  * that if better-auth ever does start creating these the call becomes a harmless
  * no-op instead of a name conflict.
+ *
+ * Exported so a test can check the `collection` strings against each model's
+ * real collection name. They are hard-coded here, and an index created on a
+ * collection no model uses would pass a count-based parity check while leaving
+ * the real collection unindexed.
  */
-const INDEXES: readonly IndexDefinition[] = [
+export const INDEXES: readonly IndexDefinition[] = [
   { collection: "user", keys: { email: 1 }, name: "user_email_uidx", unique: true },
 
   { collection: "session", keys: { token: 1 }, name: "session_token_uidx", unique: true },
@@ -65,6 +70,44 @@ const INDEXES: readonly IndexDefinition[] = [
     collection: "shipments",
     keys: { status: 1, createdAt: -1 },
     name: "shipment_status_createdAt_idx",
+  },
+
+  // Support chat. The collection names are the ones pinned by `collection:` on
+  // each schema, not Mongoose's pluraliser — "chatconversations" is smashed
+  // rather than snake_cased, and a wrong string here would silently index
+  // nothing while the parity test (which counts) still passed.
+  //
+  // The unique index on visitorToken is load-bearing: that token is the only
+  // thing authorizing a read or a write of a conversation, so exactly one
+  // document may ever hold it.
+  {
+    collection: "chatconversations",
+    keys: { visitorToken: 1 },
+    name: "chat_conversation_visitorToken_uidx",
+    unique: true,
+  },
+  {
+    collection: "chatconversations",
+    keys: { lastMessageAt: -1 },
+    name: "chat_conversation_lastMessageAt_idx",
+  },
+  {
+    collection: "chatconversations",
+    keys: { status: 1, lastMessageAt: -1 },
+    name: "chat_conversation_status_lastMessageAt_idx",
+  },
+  {
+    collection: "chatconversations",
+    keys: { visitorId: 1, createdAt: -1 },
+    name: "chat_conversation_visitorId_createdAt_idx",
+  },
+  // Serves the cursor poll AND guarantees seq uniqueness, which is what makes
+  // the cursor safe against a silently reordered thread.
+  {
+    collection: "chatmessages",
+    keys: { conversationId: 1, seq: 1 },
+    name: "chat_message_conversation_seq_uidx",
+    unique: true,
   },
 ];
 

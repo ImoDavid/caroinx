@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { NativeSelect } from "@/components/admin/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { SHIPMENT_STATUSES, SHIPMENT_STATUS_LABELS } from "@/validations/shipment";
 
 /**
@@ -68,14 +68,10 @@ export function ShipmentFilters({ total }: { total: number }) {
 
         <div className="min-w-0 flex-1 space-y-space-xs sm:max-w-52">
           <Label htmlFor="shipment-status">Status</Label>
-          <select
+          <NativeSelect
             id="shipment-status"
             value={currentStatus}
             onChange={(event) => apply({ q: term, status: event.target.value })}
-            className={cn(
-              "min-h-11 w-full rounded-lg border border-input bg-transparent px-2.5 text-base",
-              "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:text-sm dark:bg-input/30",
-            )}
           >
             <option value="">All statuses</option>
             {SHIPMENT_STATUSES.map((status) => (
@@ -83,7 +79,7 @@ export function ShipmentFilters({ total }: { total: number }) {
                 {SHIPMENT_STATUS_LABELS[status]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <Button type="submit" variant="outline" size="lg" className="min-h-11">

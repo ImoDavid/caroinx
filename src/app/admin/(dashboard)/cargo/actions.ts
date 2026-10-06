@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/guards";
+import { uploadShipmentPhoto } from "@/lib/cloudinary";
 import { fieldErrorsFrom } from "@/lib/forms";
 import { logger } from "@/lib/logger";
 import {
@@ -12,8 +13,10 @@ import {
   updateShipment,
   updateShipmentStatus,
 } from "@/services/shipment.service";
+import type { ShipmentPhoto } from "@/types/shipment";
 import {
   shipmentCreateSchema,
+  shipmentPhotoSchema,
   shipmentStatusUpdateSchema,
   shipmentUpdateSchema,
 } from "@/validations/shipment";
@@ -41,15 +44,26 @@ function text(formData: FormData, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+/**
+ * An untouched <input type="file"> still posts an entry: a zero-byte File with an
+ * empty name. That is "absent", not "an empty image".
+ */
+function file(formData: FormData, key: string): File | undefined {
+  const value = formData.get(key);
+  return value instanceof File && value.size > 0 ? value : undefined;
+}
+
 function shipmentPayload(formData: FormData) {
   return {
     sender: {
       name: text(formData, "sender.name") ?? "",
+      country: text(formData, "sender.country"),
       location: text(formData, "sender.location") ?? "",
       phone: text(formData, "sender.phone"),
     },
     receiver: {
       name: text(formData, "receiver.name") ?? "",
+      country: text(formData, "receiver.country"),
       location: text(formData, "receiver.location") ?? "",
       phone: text(formData, "receiver.phone"),
       email: text(formData, "receiver.email"),
@@ -58,8 +72,51 @@ function shipmentPayload(formData: FormData) {
       transportType: text(formData, "details.transportType"),
       weightKg: text(formData, "details.weightKg"),
       shipDate: text(formData, "details.shipDate"),
+      expectedDelivery: text(formData, "details.expectedDelivery"),
     },
   };
+}
+
+/**
+ * Validates and uploads the optional photo, shared by create and edit.
+ *
+ * Returns a discriminated result rather than throwing so the caller keeps its
+ * straight-line shape, and so the "no photo posted" case stays distinguishable
+ * from "the upload failed".
+ */
+async function resolvePhoto(
+  formData: FormData,
+  userId: string,
+): Promise<{ photo?: ShipmentPhoto } | { error: ShipmentFormState }> {
+  const photoFile = file(formData, "photo");
+  if (!photoFile) return {};
+
+  // NOT routed through nestedFieldErrors(): this schema's paths are ["type"] and
+  // ["size"], which would yield field keys the form does not render, and the
+  // message would vanish silently.
+  const checked = shipmentPhotoSchema.safeParse({ type: photoFile.type, size: photoFile.size });
+  if (!checked.success) {
+    return {
+      error: {
+        status: "error",
+        message: "Check the highlighted fields.",
+        fieldErrors: { photo: checked.error.issues[0]?.message ?? "That image cannot be used." },
+      },
+    };
+  }
+
+  try {
+    return { photo: await uploadShipmentPhoto(photoFile) };
+  } catch (error) {
+    logger.error("shipment photo upload failed", { error, userId });
+    return {
+      error: {
+        status: "error",
+        message: "Check the highlighted fields.",
+        fieldErrors: { photo: "The image could not be uploaded. Please try again." },
+      },
+    };
+  }
 }
 
 /** Zod reports nested paths as ["sender","name"]; the form names them "sender.name". */
@@ -87,12 +144,23 @@ export async function createShipmentAction(
     };
   }
 
+  // Deliberately after the text parse: a mistyped weight must not burn an upload.
+  const uploaded = await resolvePhoto(formData, session.userId);
+  if ("error" in uploaded) return uploaded.error;
+  const photo = uploaded.photo;
+
   let trackingCode: string;
   try {
-    const created = await createShipment(parsed.data, session.userId);
+    const created = await createShipment(parsed.data, session.userId, photo);
     trackingCode = created.trackingCode;
   } catch (error) {
-    logger.error("shipment create failed", { error, userId: session.userId });
+    // The public id is logged so an asset orphaned by this failure is findable.
+    // It is not a secret, and the logger's key regex does not match it.
+    logger.error("shipment create failed", {
+      error,
+      userId: session.userId,
+      orphanedPublicId: photo?.publicId,
+    });
     return { status: "error", message: UNEXPECTED };
   }
 
@@ -117,11 +185,20 @@ export async function updateShipmentAction(
     };
   }
 
+  // Only reaches the service when the shipment has no photo yet — the service
+  // enforces that, because the absent form field is UI, not a boundary.
+  const uploaded = await resolvePhoto(formData, session.userId);
+  if ("error" in uploaded) return uploaded.error;
+
   try {
-    const updated = await updateShipment(id, parsed.data);
+    const updated = await updateShipment(id, parsed.data, uploaded.photo);
     if (!updated) return { status: "error", message: "That shipment no longer exists." };
   } catch (error) {
-    logger.error("shipment update failed", { error, userId: session.userId });
+    logger.error("shipment update failed", {
+      error,
+      userId: session.userId,
+      orphanedPublicId: uploaded.photo?.publicId,
+    });
     return { status: "error", message: UNEXPECTED };
   }
 
@@ -140,13 +217,16 @@ export async function updateShipmentStatusAction(
   const parsed = shipmentStatusUpdateSchema.safeParse({
     status: text(formData, "status"),
     note: text(formData, "note"),
+    // Rejected by the schema unless the status is customs_held, rather than
+    // dropped: a figure the operator typed must not vanish silently.
+    amount: text(formData, "amount"),
   });
 
   if (!parsed.success) {
     return {
       status: "error",
       message: "Check the highlighted fields.",
-      fieldErrors: fieldErrorsFrom<"status" | "note">(parsed.error),
+      fieldErrors: fieldErrorsFrom<"status" | "note" | "amount">(parsed.error),
     };
   }
 

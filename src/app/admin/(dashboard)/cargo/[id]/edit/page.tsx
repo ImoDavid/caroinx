@@ -6,6 +6,7 @@ import { ShipmentForm } from "@/components/admin/shipment-form";
 import { requireAdmin } from "@/lib/auth/guards";
 import { toDateInputValue } from "@/lib/format";
 import { getShipmentById } from "@/services/shipment.service";
+import { DEFAULT_COUNTRY } from "@/validations/shipment";
 
 import { updateShipmentAction } from "../../actions";
 
@@ -49,16 +50,22 @@ export default async function EditShipmentPage({ params }: PageProps<"/admin/car
         mode="edit"
         action={updateShipmentAction}
         shipmentId={shipment.id}
+        // A photo can be added here if the shipment has none, but never replaced.
+        hasPhoto={Boolean(shipment.photo)}
         cancelHref={`/admin/cargo/${shipment.id}`}
         submitLabel="Save changes"
         defaultValues={{
           sender: {
             name: shipment.sender.name,
+            // Falls back for shipments predating the country field: saving the
+            // edit is what backfills them.
+            country: shipment.sender.country ?? DEFAULT_COUNTRY,
             location: shipment.sender.location,
             phone: shipment.sender.phone ?? "",
           },
           receiver: {
             name: shipment.receiver.name,
+            country: shipment.receiver.country ?? DEFAULT_COUNTRY,
             location: shipment.receiver.location,
             phone: shipment.receiver.phone ?? "",
             email: shipment.receiver.email ?? "",
@@ -67,6 +74,9 @@ export default async function EditShipmentPage({ params }: PageProps<"/admin/car
             transportType: shipment.transportType,
             weightKg: shipment.weightKg,
             shipDate: toDateInputValue(shipment.shipDate),
+            expectedDelivery: shipment.expectedDelivery
+              ? toDateInputValue(shipment.expectedDelivery)
+              : "",
           },
           status: shipment.status,
         }}

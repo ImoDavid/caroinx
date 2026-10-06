@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ShipmentForm } from "@/components/admin/shipment-form";
 import { requireAdmin } from "@/lib/auth/guards";
 import { toDateInputValue } from "@/lib/format";
-import { DEFAULT_SHIPMENT_STATUS } from "@/validations/shipment";
+import { DEFAULT_COUNTRY, DEFAULT_SHIPMENT_STATUS } from "@/validations/shipment";
 
 import { createShipmentAction } from "../actions";
 
@@ -39,14 +39,17 @@ export default async function NewShipmentPage() {
         cancelHref="/admin/cargo"
         submitLabel="Create shipment"
         defaultValues={{
-          sender: { name: "", location: "", phone: "" },
-          receiver: { name: "", location: "", phone: "", email: "" },
+          sender: { name: "", country: DEFAULT_COUNTRY, location: "", phone: "" },
+          receiver: { name: "", country: DEFAULT_COUNTRY, location: "", phone: "", email: "" },
           details: {
             transportType: "air",
             weightKg: "",
             // Defaults to today: the overwhelmingly common case is booking a
             // shipment on the day it moves.
             shipDate: toDateInputValue(new Date().toISOString()),
+            // Left blank: an arrival date guessed at booking would be printed on
+            // the customer's tracking page as if it were a promise.
+            expectedDelivery: "",
           },
           status: DEFAULT_SHIPMENT_STATUS,
         }}

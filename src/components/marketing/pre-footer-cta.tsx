@@ -35,7 +35,7 @@ export function PreFooterCta() {
                 <span>Request a Free Freight Quote</span>
                 <ArrowRight className="size-5" />
               </BrandCta>
-              <BrandCta variant="glass" size="lgGlass" href="#">
+              <BrandCta variant="glass" size="lgGlass" href="/track">
                 <Radar className="size-5" />
                 <span>Track Existing Consignment</span>
               </BrandCta>

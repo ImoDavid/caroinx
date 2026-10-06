@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { COUNTRY_CODES } from "@/lib/countries";
+
 /* -------------------------------------------------------------------------- */
 /* Enumerations                                                                */
 /* -------------------------------------------------------------------------- */
@@ -103,19 +105,28 @@ const NAME_MAX = 120;
 const LOCATION_MAX = 240;
 const PHONE_MAX = 32;
 
+/**
+ * The default country on a new shipment's form. A required <select> with no
+ * blank option always posts something, so the default must be a deliberate
+ * choice rather than "whatever sorts first" — Nigeria is this operator's base.
+ */
+export const DEFAULT_COUNTRY = "NG";
+
 /* -------------------------------------------------------------------------- */
 /* Sections — mirrored by the three fieldsets in the create/edit form           */
 /* -------------------------------------------------------------------------- */
 
 export const senderSchema = z.object({
   name: requiredText(NAME_MAX, "Sender name"),
-  location: requiredText(LOCATION_MAX, "Sender location"),
+  country: z.enum(COUNTRY_CODES, { message: "Choose a country" }),
+  location: requiredText(LOCATION_MAX, "Sender city or address"),
   phone: optionalText(PHONE_MAX, "Phone number is too long"),
 });
 
 export const receiverSchema = z.object({
   name: requiredText(NAME_MAX, "Receiver name"),
-  location: requiredText(LOCATION_MAX, "Receiver location"),
+  country: z.enum(COUNTRY_CODES, { message: "Choose a country" }),
+  location: requiredText(LOCATION_MAX, "Receiver city or address"),
   phone: optionalText(PHONE_MAX, "Phone number is too long"),
   email: z
     .string()
@@ -138,6 +149,67 @@ export const shipmentDetailsSchema = z.object({
     .min(WEIGHT_MIN, "Weight must be greater than zero")
     .max(WEIGHT_MAX, "That weight looks wrong"),
   shipDate: z.coerce.date({ message: "Enter a valid shipping date" }),
+  /**
+   * Optional: an arrival date is not always known at booking, and a guess
+   * printed on a customer-facing tracking page is worse than an absent row.
+   *
+   * `preprocess` rather than `.transform().pipe()` — `z.coerce.date()` accepts
+   * `unknown`, which will not pipe from a string schema. The blank-to-undefined
+   * step has to run BEFORE coercion either way, because `z.coerce.date("")` is
+   * an Invalid Date rather than a failure. Same wall the `amount` field hit.
+   *
+   * The OUTER `.optional()` is rule 22: a ZodPipe's object key stays REQUIRED
+   * even when its output includes undefined, which would force every caller to
+   * write `expectedDelivery: undefined`. Note this makes the key OMITTABLE — a
+   * key that is present but blank still comes back present with an undefined
+   * value, which is what both `createShipment` (Mongoose drops undefined paths)
+   * and `updateShipment` (truthiness picks $set vs $unset) actually test for.
+   */
+  expectedDelivery: z
+    .preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z.coerce.date({ message: "Enter a valid expected delivery date" }).optional(),
+    )
+    .optional(),
+});
+
+/* -------------------------------------------------------------------------- */
+/* Photo                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Coupled to `experimental.serverActions.bodySizeLimit` in next.config.ts, which
+ * must stay a little larger to cover multipart boundaries and the text fields.
+ * Raising this without raising that turns a friendly field error into an opaque
+ * platform 413 — and neither may exceed Vercel's ~4.5 MB request-body ceiling,
+ * which cannot be configured away.
+ */
+export const PHOTO_MAX_BYTES = 4 * 1024 * 1024;
+
+export const PHOTO_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/avif"] as const;
+
+/** The file input's `accept` attribute, so the picker and the server agree. */
+export const PHOTO_ACCEPT = PHOTO_MIME_TYPES.join(",");
+
+/**
+ * Validates the *metadata* of an uploaded file rather than a `File` instance.
+ *
+ * This module is imported by client components and by scripts/ under bare node,
+ * so it stays zod-only: `z.instanceof(File)` would couple it to a runtime global
+ * for no benefit, and it would make these cases untestable without constructing
+ * a File. The Server Action narrows FormData to a File and passes what it finds.
+ *
+ * Note this trusts the browser-reported MIME type, which is why it is a
+ * convenience guard rather than the real boundary — Cloudinary itself rejects
+ * anything that is not a decodable image.
+ */
+export const shipmentPhotoSchema = z.object({
+  type: z.enum(PHOTO_MIME_TYPES, { message: "Upload a PNG, JPEG, WebP or AVIF image" }),
+  size: z
+    .number()
+    .int()
+    .positive("That file is empty")
+    .max(PHOTO_MAX_BYTES, "That image is larger than 4 MB"),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -168,10 +240,45 @@ export type ShipmentUpdateValues = z.output<typeof shipmentUpdateSchema>;
 
 export const STATUS_NOTE_MAX = 280;
 
-export const shipmentStatusUpdateSchema = z.object({
-  status: z.enum(SHIPMENT_STATUSES, { message: "Choose a status" }),
-  note: optionalText(STATUS_NOTE_MAX, "Note is too long"),
-});
+/**
+ * The customs charge, in USD. The currency is fixed rather than stored: there is
+ * exactly one, so a column holding the same three letters on every row would be
+ * noise — and formatting lives in `lib/format.ts` alongside the other units.
+ */
+export const AMOUNT_MAX = 10_000_000;
+
+/**
+ * Only a shipment held at customs has an amount, so the key is rejected outright
+ * on every other status rather than quietly ignored: silently dropping a figure
+ * an operator typed is worse than telling them it does not belong there.
+ *
+ * On `customs_held` the amount stays optional, and an empty field CLEARS it. That
+ * is safe because the form pre-fills the current value, so what is on screen is
+ * what gets saved — and it is the only way to correct a figure entered by mistake.
+ */
+export const AMOUNT_STATUS: ShipmentStatus = "customs_held";
+
+export const shipmentStatusUpdateSchema = z
+  .object({
+    status: z.enum(SHIPMENT_STATUSES, { message: "Choose a status" }),
+    note: optionalText(STATUS_NOTE_MAX, "Note is too long"),
+    // `preprocess` rather than `.transform().pipe()`: z.coerce.number() accepts
+    // `unknown`, which will not pipe from a string schema. The blank-to-undefined
+    // step has to run BEFORE coercion either way, because coercing "" yields 0 —
+    // and a cleared field must mean "no charge", never "zero charge".
+    amount: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z.coerce
+        .number({ message: "Enter the amount in USD" })
+        .nonnegative("Amount cannot be negative")
+        .max(AMOUNT_MAX, "That amount looks wrong")
+        .optional(),
+    ),
+  })
+  .refine((value) => value.status === AMOUNT_STATUS || value.amount === undefined, {
+    message: "An amount can only be set while the shipment is held at customs",
+    path: ["amount"],
+  });
 
 export type ShipmentStatusUpdateValues = z.output<typeof shipmentStatusUpdateSchema>;
 
