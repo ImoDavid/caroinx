@@ -6,9 +6,10 @@ import { BrandLogo } from "./brand-logo";
 
 /**
  * `{ label, href }` rather than a bare string because some destinations now
- * exist. This matters more than it looks: `SiteHeader`'s nav is `hidden …
- * lg:flex` and its mobile `Menu` button has no panel, so below 1024px the
- * Company column below is the ONLY way to reach `/about` and `/contact`.
+ * exist. `marketing/mobile-nav.tsx` means the Company column below is no longer
+ * the ONLY way to reach `/about` and `/contact` under 1024px — but it is still
+ * the only one that works with scripting off, since the mobile panel is a client
+ * island and has no no-JS equivalent.
  */
 type FooterLink = {
   readonly label: string;

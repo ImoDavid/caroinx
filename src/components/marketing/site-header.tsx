@@ -1,16 +1,10 @@
-import { ChevronDown, Headset, Languages, Menu, Search } from "lucide-react";
+import { ChevronDown, Headset, Languages, Search } from "lucide-react";
 import Link from "next/link";
 
 import { BrandCta } from "./brand-cta";
 import { BrandLogo } from "./brand-logo";
-
-const NAV_LINKS = [
-  // TODO(nav): Services has no page yet and no dropdown panel.
-  { label: "Services", href: "#", hasChevron: true },
-  { label: "Tracking", href: "/track", hasChevron: false },
-  { label: "Company", href: "/about", hasChevron: false },
-  { label: "Contact", href: "/contact", hasChevron: false },
-] as const;
+import { MobileNav } from "./mobile-nav";
+import { NAV_LINKS } from "./nav-links";
 
 export function SiteHeader() {
   return (
@@ -68,18 +62,17 @@ export function SiteHeader() {
               <span className="hidden sm:inline">Quick Track</span>
               <span className="sr-only sm:hidden">Quick Track</span>
             </Link>
-            <BrandCta size="md" href="#" className="min-h-11">
+            {/* Hidden below lg. NOT because it is duplicated — MobileNav's panel
+                carries the tracking lookup instead — but because `href="#"`
+                means it is inert everywhere, so hiding it costs no capability,
+                and it buys the logo back ~114px at 320px.
+                TODO(nav): when this gets a real destination it must become
+                reachable on mobile again, or it IS a responsive rule 3
+                violation. */}
+            <BrandCta size="md" href="#" className="hidden min-h-11 lg:inline-flex">
               Request Quote
             </BrandCta>
-            {/* TODO(nav): mobile menu is a visual placeholder; scope is homepage-only.
-                No aria-expanded/aria-controls — there is no panel to describe. */}
-            <button
-              type="button"
-              aria-label="Open navigation menu"
-              className="flex size-11 items-center justify-center text-on-surface lg:hidden"
-            >
-              <Menu className="size-6" />
-            </button>
+            <MobileNav />
           </div>
         </div>
       </div>

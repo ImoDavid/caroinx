@@ -29,7 +29,7 @@ It has two experiences:
 | Shipment CRUD + status history at `/admin/cargo` | Built (`models/Shipment.ts`, `services/shipment.service.ts`)          |
 | MongoDB connection, env validation, logging      | Built (`src/lib/`)                                                    |
 | Admin seeding + index management                 | Built (`scripts/`)                                                    |
-| Test foundation (369 tests)                      | Built (`tests/`)                                                      |
+| Test foundation (387 tests)                      | Built (`tests/`)                                                      |
 | Support chat (public widget + admin inbox)       | Built — polling transport, in-app alerting only (gap 33)              |
 | Public tracking lookup at `/track`               | Built (`src/app/(public)/track/`, `components/marketing/tracking/`)   |
 | Company page at `/about`                         | Built (`src/app/(public)/about/`, `components/marketing/about/`)      |
@@ -60,8 +60,9 @@ MongoDB Atlas
 
 - **Server Components by default.** `"use client"` only where genuinely needed; keep client
   boundaries small. Client modules are the public `tracking/print-button.tsx`, the chat island in
-  `marketing/chat/`, the login form, and the interactive admin pieces in `src/components/admin/`
-  (sidebar, menus, forms, filters). Pages, tables, lists and timelines all stay on the server.
+  `marketing/chat/`, `marketing/mobile-nav.tsx`, the login form, and the interactive admin pieces in
+  `src/components/admin/` (sidebar, menus, forms, filters). Pages, tables, lists and timelines all
+  stay on the server.
 - **Server Actions** for mutations (login, sign-out, every shipment create/update/status/delete,
   and the admin chat reply/close/reopen/delete).
   **Route Handlers** only where an HTTP surface is genuinely required — today the mounted
@@ -95,23 +96,23 @@ during render) — the next successful login overwrites it.
 
 ## Directory conventions
 
-| Path                         | Purpose                                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------------------------- |
-| `src/app/(public)/`          | Public pages. A route group, so it contributes nothing to the URL.                           |
-| `src/app/admin/login/`       | Sign-in. Sits OUTSIDE the `(dashboard)` group so it gets no shell.                           |
-| `src/app/admin/(dashboard)/` | Every authenticated admin screen. Shares the sidebar/topbar shell layout.                    |
-| `src/app/api/`               | Route Handlers. Only where HTTP is the right interface.                                      |
-| `src/components/ui/`         | shadcn primitives. **Owned by the shadcn CLI — do not edit; it overwrites them.**            |
-| `src/hooks/`                 | Also **shadcn-CLI-owned** (`use-mobile.ts`). Same rule: do not hand-edit.                    |
-| `src/components/admin/`      | Admin shell + shipment UI. Covered by the client-import lint glob.                           |
-| `src/components/marketing/`  | Sections + shared primitives. Per-route folders: `tracking/`, `about/`, `contact/`, `chat/`. |
-| `src/lib/`                   | Cross-cutting infrastructure (see below).                                                    |
-| `src/models/`                | Mongoose models (`Shipment.ts`, `ChatConversation.ts`, `ChatMessage.ts`). Server-only.       |
-| `src/services/`              | Business logic. **Must not import `next/*`** so it stays testable.                           |
-| `src/validations/`           | Zod schemas shared by client forms and server boundaries.                                    |
-| `src/types/`                 | Plain DTO shapes components render. Client code imports these, never `@/services/*`.         |
-| `scripts/`                   | Operator tools + one-off generators whose OUTPUT is committed. `console` is the point.       |
-| `tests/`                     | `unit/` (no I/O), `integration/` (in-memory MongoDB), `components/` (jsdom).                 |
+| Path                         | Purpose                                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/(public)/`          | Public pages. A route group, so it contributes nothing to the URL.                                                            |
+| `src/app/admin/login/`       | Sign-in. Sits OUTSIDE the `(dashboard)` group so it gets no shell.                                                            |
+| `src/app/admin/(dashboard)/` | Every authenticated admin screen. Shares the sidebar/topbar shell layout.                                                     |
+| `src/app/api/`               | Route Handlers. Only where HTTP is the right interface.                                                                       |
+| `src/components/ui/`         | shadcn primitives. **Owned by the shadcn CLI — do not edit; it overwrites them.**                                             |
+| `src/hooks/`                 | Also **shadcn-CLI-owned** (`use-mobile.ts`). Same rule: do not hand-edit.                                                     |
+| `src/components/admin/`      | Admin shell + shipment UI. Covered by the client-import lint glob.                                                            |
+| `src/components/marketing/`  | Sections + shared primitives (`nav-links.ts` feeds both navs). Per-route folders: `tracking/`, `about/`, `contact/`, `chat/`. |
+| `src/lib/`                   | Cross-cutting infrastructure (see below).                                                                                     |
+| `src/models/`                | Mongoose models (`Shipment.ts`, `ChatConversation.ts`, `ChatMessage.ts`). Server-only.                                        |
+| `src/services/`              | Business logic. **Must not import `next/*`** so it stays testable.                                                            |
+| `src/validations/`           | Zod schemas shared by client forms and server boundaries.                                                                     |
+| `src/types/`                 | Plain DTO shapes components render. Client code imports these, never `@/services/*`.                                          |
+| `scripts/`                   | Operator tools + one-off generators whose OUTPUT is committed. `console` is the point.                                        |
+| `tests/`                     | `unit/` (no I/O), `integration/` (in-memory MongoDB), `components/` (jsdom).                                                  |
 
 `src/lib/` modules:
 
@@ -458,6 +459,10 @@ no-store` and a body that is literally `{ messages: [] }`, while a Server Action
     container instead of scrolling inside it. z-index is `z-40` for the launcher (under the `z-50`
     header, so it cannot cover the header's own menus) and `z-[55]` for the panel (over the header,
     since it covers the page on a phone, but under the skip link's `focus:z-[60]`).
+    This ladder only governs elements rendered OUTSIDE `SiteHeader`. The header is `fixed … z-50`,
+    which makes it a stacking context, so anything rendered inside it paints as one unit at 50 and
+    its own `z-index` cannot be compared with the launcher's or the skip link's at all — which is
+    why `mobile-nav.tsx` sets none (rule 68).
 59. **Chat timestamps are UTC, like every other formatter in `lib/format.ts`.** A real trade: a
     visitor in Lagos sees 09:05 for a message their own clock calls 10:05. Local time would read
     better but would break that module's one guarantee — identical output on the server and in the
@@ -516,6 +521,30 @@ no-store` and a body that is literally `{ messages: [] }`, while a Server Action
     `Promise.all`: polling a thread is what zeroes its `unreadForAdmin`, so counting afterwards is
     what makes the bell drop to zero in the same tick the admin opens a conversation. Counting first
     would report a stale number for one whole poll interval.
+
+68. **The header's `backdrop-blur-md` bar is the containing block for `position: fixed` descendants,
+    so the mobile nav is `absolute top-full` with no z-index.** A `backdrop-filter` other than `none`
+    creates both a stacking context and a containing block for absolutely AND fixed positioned
+    descendants (Filter Effects L2, same as `filter`/`transform`). `site-header.tsx`'s primary bar
+    has one. So inside it `fixed inset-x-0 top-header` resolves against that 80px bar rather than the
+    viewport — the panel would hang 40px below the header, and a `fixed inset-0` backdrop would
+    compute a **negative height and vanish**, silently taking click-to-close with it. Both failures
+    look like CSS typos and neither errors. `absolute top-full` is the fix and is better anyway: it
+    is the bar's own bottom edge, so it tracks `h-20` and picks up the two `border-b` hairlines that
+    `--spacing-header` (7.5rem) rounds away. The z-index is omitted for the reason in rule 58 — the
+    header is already a stacking context, so one here would be dead configuration. **Any future
+    viewport-anchored overlay must be rendered outside that bar, or portalled.**
+69. **`mobile-nav.tsx` is a disclosure, not a dialog, and it is NOT a tidier gap 24.**
+    `aria-expanded`/`aria-controls` on the toggle plus a plain `<nav>`, with no `role="dialog"`, no
+    `aria-modal` and no focus trap. That is honest about the keyboard contract: the panel renders
+    immediately after its own button and the desktop nav is `display: none` below `lg`, so Tab flows
+    in with no phantom stops. But it is a _different_ compromise of the same family as the chat
+    panel's, not a cleaner one — see gap 37. The panel's `aria-label` is **"Mobile"**, not "Main",
+    only because jsdom applies no CSS: both landmarks are in the tree in a component test, and two
+    named "Main" would make `getByRole` ambiguous. Every row closes the panel with an `onClick`,
+    never an effect on `usePathname()` — that would trip `react-hooks/set-state-in-effect`, which is
+    on for `src/components/marketing/**`, and would also miss a tap on the CURRENT route, where Next
+    navigates nowhere and fires no pathname change.
 
 ## Decision-making rules
 
@@ -608,13 +637,15 @@ no-store` and a body that is literally `{ messages: [] }`, while a Server Action
     would arrive reading `Dispatch+enquiry`. A test asserts the page renders no `<form>` and that
     every subject is percent-encoded, so neither decision is silently reversed. Do not add a form
     without first adding a transport.
-20. **The new pages are unreachable from the mobile header.** `SiteHeader`'s `<nav>` is
-    `hidden … lg:flex` and its `Menu` button is still a panel-less placeholder, so below 1024px
-    `/about` and `/contact` are reachable only via in-page links and the footer's Company column —
-    which is why `FooterColumn.links` was converted from `readonly string[]` to `{ label, href }`.
-    Closing this means a real mobile menu, which would be the **second** `"use client"` module in
-    `src/components/marketing/` (after `tracking/print-button.tsx`). `Services`, the region
-    switcher and both `Request Quote` CTAs are still `href="#"` placeholders.
+20. **The marketing site's `#` placeholders outlived the mobile-nav work.** `marketing/mobile-nav.tsx`
+    closed the navigation half of this gap — `/track`, `/about` and `/contact` are now reachable from
+    the header below 1024px, and the footer's Company column is no longer the only path (though it
+    remains the only one that survives scripting being off). What is still inert: `Services`, the
+    utility bar's region switcher, and the header's `Request Quote`. That last one is
+    `hidden lg:inline-flex` **not** because the panel duplicates it — the panel promotes the `/track`
+    lookup instead — but because `href="#"` means hiding it costs no capability; when it gets a real
+    destination it must become reachable on mobile again or it IS a responsive rule 3 violation.
+    There is a `TODO(nav)` on it in `site-header.tsx`.
 21. **`/about` and `/contact` state no company facts.** No founding year, headcount, named people
     or new certifications — only capability and principle, so nothing on either page can need
     correcting. Where they state something concrete it is either a **product** fact read from the
@@ -712,6 +743,21 @@ no-store` and a body that is literally `{ messages: [] }`, while a Server Action
     own. Only the bell's count is live there. Making the list live would mean polling a paginated,
     filtered query — far more than a count — to refresh rows the admin is not reading; the badge
     already tells them something arrived.
+
+37. **The mobile nav's backdrop makes the panel modal for pointer users only.** Tapping or clicking
+    the page behind is blocked; Tab and screen-reader swipe still reach it. So the panel _behaves_
+    modally for some people while declaring nothing (rule 69) — the inverse of gap 24, where the
+    chat panel declines to claim modality it does not have. Both are compromises of the same family
+    and neither is the tidier one. Closing it properly means `ui/dialog.tsx` (a shadcn-CLI addition)
+    and a real focus trap, at which point `aria-modal` becomes true rather than omitted. Dropping
+    the backdrop instead would also resolve it and would cost tap-outside-to-close, which on a phone
+    is the gesture people reach for first.
+38. **The mobile nav has no no-JavaScript equivalent**, like the chat widget (gap 23) and unlike
+    `tracking/print-button.tsx`. With scripting off the toggle does nothing and the footer's Company
+    column is again the only navigation below 1024px — which is why `FooterLink` keeps its
+    `{ label, href }` shape and why `site-footer.tsx` says so. A `<details>`/`<summary>` panel would
+    close it without JavaScript, at the cost of reimplementing the row styling against a disclosure
+    widget whose open state cannot be read back by the Escape handler.
 
 ## Operations
 

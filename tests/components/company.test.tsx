@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import AboutPage from "@/app/(public)/about/page";
@@ -106,9 +107,11 @@ describe("ContactPage", () => {
 });
 
 describe("site chrome", () => {
-  // BrandCta and ArrowLink render plain <a> elements, so Next's typed routes do
-  // NOT check their hrefs — a typo would typecheck, build, and 404. These
-  // assertions are the only net under that.
+  // `typedRoutes` is NOT enabled (it is absent from next.config.ts, and
+  // next/link declares `href: Url` = `string | UrlObject`), so nothing in the
+  // toolchain checks ANY href in this project — a typo would typecheck, build
+  // and 404. These assertions are the only net under every link, not just the
+  // plain <a> ones in BrandCta and ArrowLink.
   it("reaches /about and /contact from the header nav", () => {
     const { container } = render(<SiteHeader />);
     const hrefs = [...container.querySelectorAll("a")].map((link) => link.getAttribute("href"));
@@ -117,9 +120,29 @@ describe("site chrome", () => {
     expect(hrefs).toContain("/contact");
   });
 
-  it("reaches both pages from the footer, the only path to them below lg", () => {
-    // SiteHeader's nav is `hidden … lg:flex` and its mobile Menu button has no
-    // panel, so on a phone the footer column is the whole navigation.
+  it("offers a real mobile menu rather than a placeholder button", async () => {
+    // Gap 20's placeholder had no handler, no panel and no aria-expanded. This
+    // is the assertion that pins it as really gone; MobileNav's own behaviour is
+    // covered in tests/components/mobile-nav.test.tsx.
+    render(<SiteHeader />);
+    const toggle = screen.getByRole("button", { name: "Open navigation menu" });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls");
+
+    await userEvent.click(toggle);
+
+    const hrefs = [...screen.getByRole("navigation", { name: "Mobile" }).querySelectorAll("a")].map(
+      (link) => link.getAttribute("href"),
+    );
+    expect(hrefs).toContain("/about");
+    expect(hrefs).toContain("/contact");
+  });
+
+  it("still reaches both pages from the footer, which needs no JavaScript", () => {
+    // No longer the ONLY path below lg — MobileNav closed that gap — but still
+    // the one that works with scripting off, which is why FooterLink carries
+    // `{ label, href }` at all.
     const { container } = render(<SiteFooter />);
     const hrefs = [...container.querySelectorAll("a")].map((link) => link.getAttribute("href"));
 
