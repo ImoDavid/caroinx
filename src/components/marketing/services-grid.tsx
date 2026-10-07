@@ -1,63 +1,19 @@
-import { Lock, type LucideIcon, PlaneTakeoff, Shield, Ship, Truck, Warehouse } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
-import { ArrowLink } from "./arrow-link";
 import { IconTile } from "./icon-tile";
 import { SectionHeading } from "./section-heading";
+import { SERVICE_DIVISIONS, type ServiceDivision } from "./service-divisions";
 
-type Service = {
-  readonly ordinal: string;
-  readonly icon: LucideIcon;
-  readonly title: string;
-  readonly body: string;
-  readonly badge: string;
-};
+/**
+ * The landing page's service summary.
+ *
+ * The list itself lives in `service-divisions.ts` because `/services` renders
+ * the same six at length — one table, so the two surfaces cannot disagree about
+ * what the company does.
+ */
 
-const SERVICES: readonly Service[] = [
-  {
-    ordinal: "01",
-    icon: PlaneTakeoff,
-    title: "Air Freight Direct & Charter",
-    body: "As an endorsed air freight forwarder, we provide priority expedited air cargo, global charter options, and guaranteed next-flight-out routing worldwide.",
-    badge: "IATA Endorsed",
-  },
-  {
-    ordinal: "02",
-    icon: Ship,
-    title: "Sea & Ocean Freight (FCL/LCL)",
-    body: "International ocean freight import and export. Full Container Load (FCL), Less-than-Container Load (LCL), breakbulk, and consolidated ocean services from port-to-port and door-to-door.",
-    badge: "High-Capacity Maritime",
-  },
-  {
-    ordinal: "03",
-    icon: Truck,
-    title: "Road & Intermodal Transportation",
-    body: "Dependable domestic and transcontinental linehaul, temperature-controlled reefer fleets, specialized lowboy flatbeds, and dedicated heavy-haul road networks.",
-    badge: "Cross-Border Linehaul",
-  },
-  {
-    ordinal: "04",
-    icon: Lock,
-    title: "Diplomatic Bag & Secure Freight",
-    body: "Specialized global secure cargo, diplomatic pouches, secure escort courier, biometric chain-of-custody protocols, and immunity-compliant transport for sensitive government assets.",
-    badge: "Vienna Convention Sealed",
-  },
-  {
-    ordinal: "05",
-    icon: Warehouse,
-    title: "Intelligent Warehousing & Distribution",
-    body: "Shared and dedicated bonded warehousing solutions supported by real-time WMS telemetry, climate-controlled cold storage, pick-pack fulfillment, and inventory replenishment.",
-    badge: "Bonded Hubs",
-  },
-  {
-    ordinal: "06",
-    icon: Shield,
-    title: "Specialized Packaging & Hazmat Storage",
-    body: "Industrial crating, precision electronics ESD protection, certified IMO/ICAO dangerous goods handling, and Lloyd's-backed comprehensive marine & transit cargo insurance.",
-    badge: "Full Transit Insured",
-  },
-];
-
-function ServiceCard({ service }: { service: Service }) {
+function ServiceCard({ service }: { service: ServiceDivision }) {
   return (
     <div className="group flex flex-col justify-between rounded-2xl bg-surface p-space-lg shadow-sm transition-all duration-300 hover:shadow-xl">
       <div>
@@ -83,12 +39,17 @@ function ServiceCard({ service }: { service: Service }) {
         <span className="text-label-badge font-bold text-primary-container uppercase">
           {service.badge}
         </span>
-        <ArrowLink
-          href="#"
-          className="text-body-sm font-semibold text-primary-container transition-transform group-hover:translate-x-1"
+        {/* `asChild`-less by design: ArrowLink is a plain <a>, so a real
+            destination wants next/link's prefetch. The anchor is the division's
+            own section on /services. */}
+        <Link
+          href={`/services#${service.slug}`}
+          className="inline-flex items-center gap-1 rounded-sm text-body-sm font-semibold text-primary-container transition-transform group-hover:translate-x-1 focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:outline-hidden"
         >
-          Learn More
-        </ArrowLink>
+          <span>Learn More</span>
+          <span className="sr-only"> about {service.title}</span>
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
       </div>
     </div>
   );
@@ -107,18 +68,19 @@ export function ServicesGrid() {
           title="Comprehensive Logistics Built for Global Commerce"
           className="pb-space-2xl"
           trailing={
-            <ArrowLink
-              href="#"
-              className="gap-space-xs self-start font-display text-title-sm font-bold text-primary-container transition-colors hover:text-primary-light md:self-auto"
+            <Link
+              href="/services"
+              className="inline-flex items-center gap-space-xs self-start rounded-sm font-display text-title-sm font-bold text-primary-container transition-colors hover:text-primary-light focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:outline-hidden md:self-auto"
             >
-              Explore All 6 Core Divisions
-            </ArrowLink>
+              <span>Explore All {SERVICE_DIVISIONS.length} Core Divisions</span>
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
           }
         />
 
         <div className="grid grid-cols-1 gap-gutter-desktop md:grid-cols-2 lg:grid-cols-3">
-          {SERVICES.map((service) => (
-            <ServiceCard key={service.ordinal} service={service} />
+          {SERVICE_DIVISIONS.map((service) => (
+            <ServiceCard key={service.slug} service={service} />
           ))}
         </div>
       </div>

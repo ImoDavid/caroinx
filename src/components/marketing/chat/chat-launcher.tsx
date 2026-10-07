@@ -11,6 +11,7 @@ import { ChatComposer } from "./chat-composer";
 import { ChatPanel } from "./chat-panel";
 import { ChatPrechatForm } from "./chat-prechat-form";
 import { ChatThread } from "./chat-thread";
+import { OPEN_CHAT_EVENT, type OpenChatDetail } from "./open-chat";
 import { useChatPoll } from "./use-chat-poll";
 
 /**
@@ -58,6 +59,8 @@ export function ChatLauncher() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [lastActivityAt, setLastActivityAt] = useState(0);
+  /** Seeded by an `openChat({ trackingCode })` from a CTA elsewhere on the page. */
+  const [prefillTrackingCode, setPrefillTrackingCode] = useState<string | undefined>(undefined);
 
   // A ref, not state: a stale closure must never be able to re-request a window
   // that has already been merged.
@@ -89,6 +92,30 @@ export function ChatLauncher() {
     onPoll,
     onGone,
   });
+
+  /**
+   * Opened from somewhere else on the page — the customs-charge CTA, the
+   * tracking-failure panels, the landing CTA. See `open-chat.ts` for why this
+   * is a DOM event rather than context.
+   *
+   * Registered unconditionally and never torn down between opens, so a CTA
+   * clicked while the panel is already open is a no-op rather than a toggle:
+   * "open the chat" must never close it.
+   */
+  useEffect(() => {
+    function onOpenRequest(event: Event) {
+      const detail = (event as CustomEvent<OpenChatDetail>).detail;
+      // Only overwrite when the CTA actually supplied one, so opening from a
+      // generic CTA cannot wipe a code the visitor already typed.
+      if (detail?.trackingCode) setPrefillTrackingCode(detail.trackingCode);
+      setOpen(true);
+    }
+
+    window.addEventListener(OPEN_CHAT_EVENT, onOpenRequest);
+    return () => {
+      window.removeEventListener(OPEN_CHAT_EVENT, onOpenRequest);
+    };
+  }, []);
 
   // Escape closes and returns focus to the launcher, which is the whole
   // keyboard contract here: there is deliberately no focus trap, because a real
@@ -218,6 +245,7 @@ export function ChatLauncher() {
             <ChatPrechatForm
               busy={starting}
               error={startError}
+              defaultTrackingCode={prefillTrackingCode}
               onStart={(input) => void handleStart(input)}
             />
           ) : (

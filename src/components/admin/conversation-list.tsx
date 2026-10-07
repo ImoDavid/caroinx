@@ -2,6 +2,7 @@ import { Inbox, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
 import { CountryLabel } from "@/components/admin/country-label";
+import { EmptyState } from "@/components/admin/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 import type { ConversationSummary } from "@/types/chat";
@@ -26,29 +27,20 @@ export type ConversationListProps = {
   filtered: boolean;
 };
 
-function EmptyState({ filtered }: { filtered: boolean }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-space-xl text-center">
-      <span
-        aria-hidden="true"
-        className="mx-auto flex size-12 items-center justify-center rounded-xl bg-muted text-foreground"
-      >
-        <Inbox className="size-6" />
-      </span>
-      <h3 className="pt-space-sm font-display text-title-sm font-bold">
-        {filtered ? "No conversations match those filters" : "No conversations yet"}
-      </h3>
-      <p className="pt-space-xs text-body-sm text-muted-foreground">
-        {filtered
-          ? "Try a different name, status, or clear the filters."
-          : "When a visitor opens the chat widget on the public site, their conversation appears here."}
-      </p>
-    </div>
-  );
-}
-
 export function ConversationList({ conversations, filtered }: ConversationListProps) {
-  if (conversations.length === 0) return <EmptyState filtered={filtered} />;
+  if (conversations.length === 0) {
+    return (
+      <EmptyState
+        icon={Inbox}
+        title={filtered ? "No conversations match those filters" : "No conversations yet"}
+        description={
+          filtered
+            ? "Try a different name, status, or clear the filters."
+            : "When a visitor opens the chat widget on the public site, their conversation appears here."
+        }
+      />
+    );
+  }
 
   return (
     <ul className="space-y-space-sm">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChatMessageList } from "@/components/admin/chat-message-list";
 import { useAdminChatPoll } from "@/components/admin/use-admin-chat-poll";
@@ -49,6 +49,28 @@ export function ChatThreadLive({
   const [lastActivityAt, setLastActivityAt] = useState(() => Date.now());
 
   const cursor = useRef(initialCursor);
+  const anchor = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Follow the conversation, but never yank the page.
+   *
+   * Scrolls to the newest message only when the admin is ALREADY near the
+   * bottom — reading back through history and being thrown forward by someone
+   * else's message is the single most irritating thing a live thread can do.
+   *
+   * This is an effect but sets no state, so `react-hooks/set-state-in-effect`
+   * (an error across `src/components/admin/**`) is not involved.
+   */
+  useEffect(() => {
+    const end = anchor.current;
+    const pane = end?.parentElement;
+    if (!end || !pane) return;
+
+    const distance = pane.scrollHeight - pane.scrollTop - pane.clientHeight;
+    if (distance > 160) return;
+
+    end.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [messages]);
 
   const onPoll = useCallback((poll: AdminPoll) => {
     if (!poll.messages) return;
@@ -78,10 +100,16 @@ export function ChatThreadLive({
     <>
       <ChatMessageList messages={messages} />
       {gone ? (
+        // Still reachable with the delete BUTTON gone: the designated
+        // scripts/prune-chat.ts (gap 30) can remove a conversation out from
+        // under an open thread, and the poll's 404 is how this learns.
         <p role="status" className="pt-space-sm text-body-sm text-destructive">
           This conversation has been deleted.
         </p>
       ) : null}
+      {/* The scroll target. A zero-height element rather than scrolling the
+          last bubble, so a tall image does not land with its top off-screen. */}
+      <div ref={anchor} aria-hidden="true" />
     </>
   );
 }

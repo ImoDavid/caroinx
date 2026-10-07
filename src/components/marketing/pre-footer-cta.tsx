@@ -1,7 +1,7 @@
 import { ArrowRight, BadgeCheck, Radar } from "lucide-react";
 
-import { BRAND } from "./brand";
 import { BrandCta } from "./brand-cta";
+import { ChatCta } from "./chat/chat-cta";
 
 export function PreFooterCta() {
   return (
@@ -41,13 +41,10 @@ export function PreFooterCta() {
               </BrandCta>
             </div>
             <div className="pt-space-md text-body-sm text-white/70">
-              Urgent shipment dispatch? Direct 24/7 global operations desk:{" "}
-              <a
-                className="font-semibold break-all text-secondary-container hover:underline"
-                href={`mailto:${BRAND.supportEmail}`}
-              >
-                {BRAND.supportEmail}
-              </a>
+              Urgent shipment dispatch?{" "}
+              <ChatCta className="font-semibold text-secondary-container no-underline hover:underline">
+                Chat with our 24/7 operations desk
+              </ChatCta>
             </div>
           </div>
         </div>

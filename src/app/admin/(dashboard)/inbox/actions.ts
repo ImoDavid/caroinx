@@ -1,25 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/guards";
 import { uploadChatImage } from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
-import {
-  appendAdminMessage,
-  closeConversation,
-  deleteConversation,
-  reopenConversation,
-} from "@/services/chat.service";
+import { appendAdminMessage, closeConversation, reopenConversation } from "@/services/chat.service";
 import type { ChatImageRecord } from "@/types/chat";
 import { chatImageSchema } from "@/validations/chat";
 
-import type {
-  ConversationFormState,
-  DeleteConversationFormState,
-  ReplyFormState,
-} from "./form-state";
+import type { ConversationFormState, ReplyFormState } from "./form-state";
 
 /**
  * Every action here re-verifies with `requireAdmin()`.
@@ -203,26 +193,16 @@ export async function reopenConversationAction(
   return undefined;
 }
 
-export async function deleteConversationAction(
-  _previous: DeleteConversationFormState,
-  formData: FormData,
-): Promise<DeleteConversationFormState> {
-  const session = await requireAdmin();
-
-  const id = text(formData, "id");
-  if (!id) return { status: "error", message: UNEXPECTED };
-
-  try {
-    const deleted = await deleteConversation(id);
-    if (!deleted) {
-      return { status: "error", message: "That conversation no longer exists." };
-    }
-  } catch (error) {
-    logger.error("failed to delete a conversation", { error, actorId: session.userId });
-    return { status: "error", message: UNEXPECTED };
-  }
-
-  // Outside the try/catch so NEXT_REDIRECT is not swallowed as an error.
-  revalidatePath("/admin/inbox");
-  redirect("/admin/inbox?deleted=1");
-}
+/**
+ * There is deliberately NO delete action here.
+ *
+ * The UI for deleting a conversation was removed, and the action went with it
+ * rather than being left unreferenced: a Server Action is a public POST
+ * endpoint, so an uncalled one is still a mounted, callable way to destroy a
+ * record — strictly worse than not having it.
+ *
+ * `deleteConversation()` remains in `chat.service.ts` with its tests. Its
+ * intended caller is the designated `scripts/prune-chat.ts` (CLAUDE.md gap 30),
+ * which is also the only thing that can clean up the Cloudinary assets a
+ * deletion orphans (gap 29).
+ */

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { CopyButton } from "@/components/admin/copy-button";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
+import { EmptyState } from "@/components/admin/empty-state";
 import { ShipmentFilters } from "@/components/admin/shipment-filters";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
@@ -90,32 +91,26 @@ const COLUMNS: readonly DataTableColumn<ShipmentSummary>[] = [
   },
 ];
 
-function EmptyState({ filtered }: { filtered: boolean }) {
+function ShipmentsEmpty({ filtered }: { filtered: boolean }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-space-xl text-center">
-      <span
-        aria-hidden="true"
-        className="mx-auto flex size-12 items-center justify-center rounded-xl bg-muted text-foreground"
-      >
-        <Package className="size-6" />
-      </span>
-      <h3 className="pt-space-sm font-display text-title-sm font-bold">
-        {filtered ? "No shipments match those filters" : "No shipments yet"}
-      </h3>
-      <p className="pt-space-xs text-body-sm text-muted-foreground">
-        {filtered
+    <EmptyState
+      icon={Package}
+      title={filtered ? "No shipments match those filters" : "No shipments yet"}
+      description={
+        filtered
           ? "Try a different tracking code, name, or status."
-          : "Create the first shipment and its tracking code will be generated automatically."}
-      </p>
+          : "Create the first shipment and its tracking code will be generated automatically."
+      }
+    >
       {!filtered ? (
-        <Button asChild size="lg" className="mt-space-md min-h-11">
+        <Button asChild size="lg" className="min-h-11">
           <Link href="/admin/cargo/new">
             <Plus className="size-4" aria-hidden="true" />
             New shipment
           </Link>
         </Button>
       ) : null}
-    </div>
+    </EmptyState>
   );
 }
 
@@ -201,7 +196,7 @@ export default async function CargoListPage({ searchParams }: PageProps<"/admin/
         columns={COLUMNS}
         rows={items}
         getRowKey={(shipment) => shipment.id}
-        empty={<EmptyState filtered={filtered} />}
+        empty={<ShipmentsEmpty filtered={filtered} />}
       />
 
       <Pagination page={page} pageCount={pageCount} params={{ q: query.q, status: query.status }} />

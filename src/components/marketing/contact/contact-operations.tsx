@@ -33,7 +33,7 @@ const LIMITS: readonly { readonly term: string; readonly detail: string }[] = [
   {
     term: "No online payment",
     detail:
-      "A customs clearance charge is settled by email with the dispatch desk, quoting your tracking code.",
+      "A customs clearance charge is settled with the operations desk — open the chat from your tracking result and the code travels with it.",
   },
   {
     term: "No automatic status emails",

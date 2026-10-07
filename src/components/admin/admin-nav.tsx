@@ -11,8 +11,22 @@ import { ADMIN_NAV } from "./nav-items";
  * itself: that keeps it renderable under jsdom (the `dom` Vitest project has no
  * `react-server` resolve condition), and makes the active-state rule injectable.
  * `admin-sidebar.tsx` is the client boundary that reads the segment.
+ *
+ * `onNavigate` follows the same rule, and is how the mobile sheet closes on
+ * navigation. It is an `onClick` and NOT an effect on `usePathname()` for two
+ * reasons: `react-hooks/set-state-in-effect` is an error across
+ * `src/components/admin/**`, and tapping the item for the CURRENT route
+ * navigates nowhere and fires no pathname change — so an effect would leave the
+ * sheet open exactly when the user expects it to close. Same reasoning as the
+ * marketing mobile nav (CLAUDE.md rule 69).
  */
-export function AdminNav({ activeSegment }: { activeSegment: string | null }) {
+export function AdminNav({
+  activeSegment,
+  onNavigate,
+}: {
+  activeSegment: string | null;
+  onNavigate?: () => void;
+}) {
   return (
     <SidebarMenu>
       {ADMIN_NAV.map((item) => {
@@ -34,7 +48,11 @@ export function AdminNav({ activeSegment }: { activeSegment: string | null }) {
               tooltip={item.label}
               className="relative min-h-11 before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-transparent data-[active=true]:font-semibold data-[active=true]:before:bg-sidebar-primary"
             >
-              <Link href={item.href} aria-current={isActive ? "page" : undefined}>
+              <Link
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                onClick={onNavigate}
+              >
                 <item.icon aria-hidden="true" />
                 <span>{item.label}</span>
               </Link>

@@ -1,6 +1,7 @@
 import { CreditCard, ReceiptText } from "lucide-react";
 
 import { BRAND } from "@/components/marketing/brand";
+import { ChatCta } from "@/components/marketing/chat/chat-cta";
 import { formatAmount } from "@/lib/format";
 import type { PublicShipment } from "@/types/tracking";
 
@@ -71,15 +72,19 @@ export function DutyFees({ shipment }: { shipment: PublicShipment }) {
             data-print="hide"
             className="pt-space-sm text-body-sm text-on-surface-variant"
           >
-            Online payment is not available yet. To settle this charge, contact our operations desk
-            at{" "}
-            <a
-              href={`mailto:${BRAND.dispatchEmail}`}
-              className="rounded font-medium underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:outline-none"
+            Online payment is not available yet. To settle this charge,{" "}
+            {/* The tracking code is passed through, so the pre-chat form arrives
+                prefilled and the admin sees the consignment beside the thread —
+                the visitor no longer has to copy a code off the page they are
+                already looking at. */}
+            <ChatCta
+              trackingCode={shipment.trackingCode}
+              fallbackEmail={BRAND.dispatchEmail}
+              fallbackSubject={`Customs clearance fee · ${shipment.trackingCode}`}
             >
-              {BRAND.dispatchEmail}
-            </a>
-            , quoting your tracking code.
+              chat with our operations desk
+            </ChatCta>
+            .
           </p>
         </>
       ) : null}

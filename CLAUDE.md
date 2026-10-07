@@ -13,29 +13,30 @@ does not yet need.
 
 It has two experiences:
 
-- **Public** (no login): landing page, shipment tracking at `/track`, `/about` and `/contact` —
-  **built**.
+- **Public** (no login): landing page, shipment tracking at `/track`, `/services`, `/about` and
+  `/contact` — **built**.
 - **Admin** (login required): password sign-in, an application shell, and full shipment
   management — **built**.
 
 ### What exists today
 
-| Area                                             | State                                                                 |
-| ------------------------------------------------ | --------------------------------------------------------------------- |
-| Marketing landing page at `/`                    | Built (`src/app/(public)/`)                                           |
-| Admin login + session                            | Built (`src/app/admin/login/`)                                        |
-| Admin shell (sidebar, topbar, dark mode)         | Built (`src/app/admin/(dashboard)/`, `components/admin/`)             |
-| Overview page at `/admin`                        | Built                                                                 |
-| Shipment CRUD + status history at `/admin/cargo` | Built (`models/Shipment.ts`, `services/shipment.service.ts`)          |
-| MongoDB connection, env validation, logging      | Built (`src/lib/`)                                                    |
-| Admin seeding + index management                 | Built (`scripts/`)                                                    |
-| Test foundation (387 tests)                      | Built (`tests/`)                                                      |
-| Support chat (public widget + admin inbox)       | Built — polling transport, in-app alerting only (gap 33)              |
-| Public tracking lookup at `/track`               | Built (`src/app/(public)/track/`, `components/marketing/tracking/`)   |
-| Company page at `/about`                         | Built (`src/app/(public)/about/`, `components/marketing/about/`)      |
-| Contact page at `/contact`                       | Built — **`mailto:` only, no form** (`components/marketing/contact/`) |
-| Shipment photo upload                            | Built — signed Cloudinary upload through the create action            |
-| Email transport (password reset, verification)   | **Deliberately absent**                                               |
+| Area                                             | State                                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| Marketing landing page at `/`                    | Built (`src/app/(public)/`)                                            |
+| Admin login + session                            | Built (`src/app/admin/login/`)                                         |
+| Admin shell (sidebar, topbar, dark mode)         | Built (`src/app/admin/(dashboard)/`, `components/admin/`)              |
+| Overview page at `/admin`                        | Built                                                                  |
+| Shipment CRUD + status history at `/admin/cargo` | Built (`models/Shipment.ts`, `services/shipment.service.ts`)           |
+| MongoDB connection, env validation, logging      | Built (`src/lib/`)                                                     |
+| Admin seeding + index management                 | Built (`scripts/`)                                                     |
+| Test foundation (467 tests)                      | Built (`tests/`)                                                       |
+| Support chat (public widget + admin inbox)       | Built — polling transport, in-app alerting only (gap 33)               |
+| Public tracking lookup at `/track`               | Built (`src/app/(public)/track/`, `components/marketing/tracking/`)    |
+| Company page at `/about`                         | Built (`src/app/(public)/about/`, `components/marketing/about/`)       |
+| Contact page at `/contact`                       | Built — **`mailto:` only, no form** (`components/marketing/contact/`)  |
+| Services page at `/services`                     | Built (`src/app/(public)/services/`, `components/marketing/services/`) |
+| Shipment photo upload                            | Built — signed Cloudinary upload through the create action             |
+| Email transport (password reset, verification)   | **Deliberately absent**                                                |
 
 > Naming: the masterplan calls the record a `Code`. It is implemented as **`Shipment`**, whose
 > `trackingCode` field is the public handle, because the record carries sender, receiver and
@@ -96,23 +97,23 @@ during render) — the next successful login overwrites it.
 
 ## Directory conventions
 
-| Path                         | Purpose                                                                                                                       |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `src/app/(public)/`          | Public pages. A route group, so it contributes nothing to the URL.                                                            |
-| `src/app/admin/login/`       | Sign-in. Sits OUTSIDE the `(dashboard)` group so it gets no shell.                                                            |
-| `src/app/admin/(dashboard)/` | Every authenticated admin screen. Shares the sidebar/topbar shell layout.                                                     |
-| `src/app/api/`               | Route Handlers. Only where HTTP is the right interface.                                                                       |
-| `src/components/ui/`         | shadcn primitives. **Owned by the shadcn CLI — do not edit; it overwrites them.**                                             |
-| `src/hooks/`                 | Also **shadcn-CLI-owned** (`use-mobile.ts`). Same rule: do not hand-edit.                                                     |
-| `src/components/admin/`      | Admin shell + shipment UI. Covered by the client-import lint glob.                                                            |
-| `src/components/marketing/`  | Sections + shared primitives (`nav-links.ts` feeds both navs). Per-route folders: `tracking/`, `about/`, `contact/`, `chat/`. |
-| `src/lib/`                   | Cross-cutting infrastructure (see below).                                                                                     |
-| `src/models/`                | Mongoose models (`Shipment.ts`, `ChatConversation.ts`, `ChatMessage.ts`). Server-only.                                        |
-| `src/services/`              | Business logic. **Must not import `next/*`** so it stays testable.                                                            |
-| `src/validations/`           | Zod schemas shared by client forms and server boundaries.                                                                     |
-| `src/types/`                 | Plain DTO shapes components render. Client code imports these, never `@/services/*`.                                          |
-| `scripts/`                   | Operator tools + one-off generators whose OUTPUT is committed. `console` is the point.                                        |
-| `tests/`                     | `unit/` (no I/O), `integration/` (in-memory MongoDB), `components/` (jsdom).                                                  |
+| Path                         | Purpose                                                                                                                                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/(public)/`          | Public pages. A route group, so it contributes nothing to the URL.                                                                                                                                        |
+| `src/app/admin/login/`       | Sign-in. Sits OUTSIDE the `(dashboard)` group so it gets no shell.                                                                                                                                        |
+| `src/app/admin/(dashboard)/` | Every authenticated admin screen. Shares the sidebar/topbar shell layout.                                                                                                                                 |
+| `src/app/api/`               | Route Handlers. Only where HTTP is the right interface.                                                                                                                                                   |
+| `src/components/ui/`         | shadcn primitives. **Owned by the shadcn CLI — do not edit; it overwrites them.**                                                                                                                         |
+| `src/hooks/`                 | Also **shadcn-CLI-owned** (`use-mobile.ts`). Same rule: do not hand-edit.                                                                                                                                 |
+| `src/components/admin/`      | Admin shell + shipment UI. Covered by the client-import lint glob.                                                                                                                                        |
+| `src/components/marketing/`  | Sections + shared primitives (`nav-links.ts` feeds both navs, `service-divisions.ts` feeds the landing grid and `/services`). Per-route folders: `tracking/`, `about/`, `contact/`, `services/`, `chat/`. |
+| `src/lib/`                   | Cross-cutting infrastructure (see below).                                                                                                                                                                 |
+| `src/models/`                | Mongoose models (`Shipment.ts`, `ChatConversation.ts`, `ChatMessage.ts`). Server-only.                                                                                                                    |
+| `src/services/`              | Business logic. **Must not import `next/*`** so it stays testable.                                                                                                                                        |
+| `src/validations/`           | Zod schemas shared by client forms and server boundaries.                                                                                                                                                 |
+| `src/types/`                 | Plain DTO shapes components render. Client code imports these, never `@/services/*`.                                                                                                                      |
+| `scripts/`                   | Operator tools + one-off generators whose OUTPUT is committed. `console` is the point.                                                                                                                    |
+| `tests/`                     | `unit/` (no I/O), `integration/` (in-memory MongoDB), `components/` (jsdom).                                                                                                                              |
 
 `src/lib/` modules:
 
@@ -637,27 +638,49 @@ no-store` and a body that is literally `{ messages: [] }`, while a Server Action
     would arrive reading `Dispatch+enquiry`. A test asserts the page renders no `<form>` and that
     every subject is percent-encoded, so neither decision is silently reversed. Do not add a form
     without first adding a transport.
-20. **The marketing site's `#` placeholders outlived the mobile-nav work.** `marketing/mobile-nav.tsx`
-    closed the navigation half of this gap — `/track`, `/about` and `/contact` are now reachable from
-    the header below 1024px, and the footer's Company column is no longer the only path (though it
-    remains the only one that survives scripting being off). What is still inert: `Services`, the
-    utility bar's region switcher, and the header's `Request Quote`. That last one is
+20. **The marketing site's `#` placeholders are nearly gone.** `marketing/mobile-nav.tsx` closed the
+    navigation half, and `/services` closed the rest of the primary nav: every `NAV_LINKS` entry now
+    has a real destination, as does the landing grid's per-card "Learn More", its "Explore All …"
+    link, and the footer's Solutions column. A test asserts no `NAV_LINKS` href is `"#"`.
+    What is still inert: the utility bar's region switcher, the footer's `Tracking & Tools` and
+    legal columns, parts of `Company`, and the header's `Request Quote`. That last one is
     `hidden lg:inline-flex` **not** because the panel duplicates it — the panel promotes the `/track`
     lookup instead — but because `href="#"` means hiding it costs no capability; when it gets a real
     destination it must become reachable on mobile again or it IS a responsive rule 3 violation.
     There is a `TODO(nav)` on it in `site-header.tsx`.
+
+    Two consequences of `/services` existing that are easy to trip over:
+    `nav-links.ts`'s `hasChevron` is now **false on every entry** (Services was the only `true`, back
+    when it promised a dropdown and had no page), and `tests/components/mobile-nav.test.tsx` can no
+    longer click a nav row freely — every row is a `next/link` now, which throws on a real navigation
+    outside a router context, so that test swallows the default first.
+
 21. **`/about` and `/contact` state no company facts.** No founding year, headcount, named people
     or new certifications — only capability and principle, so nothing on either page can need
     correcting. Where they state something concrete it is either a **product** fact read from the
     code (`PROGRESS_STEPS` and `SHIPMENT_STATUS_LABELS` for the milestones, the tracking-code
     constants for the format, `TRANSPORT_TYPES` for the modes — so a schema change updates the copy)
     or a claim **the site already makes elsewhere**, repeated rather than reworded: `160+ countries`
-    and the `AEO-F`/`IATA CNS` badges from `hero.tsx` and `site-footer.tsx`, the Rotterdam & Houston
-    operations block from the footer. That makes the pages more restrained than the rest of the
-    marketing site, which does assert unverified figures (`metrics-strip.tsx` "101K+"/"11 Yrs",
-    `hero.tsx` "99.8%"/"4,820 TEU", `why-us.tsx` "16,000 verified reviews", `testimonials.tsx`
-    three named people). That asymmetry is deliberate; if real facts ever arrive, those files are
-    the audit scope.
+    and the `AEO-F`/`IATA CNS` badges from `hero.tsx` and `site-footer.tsx`. That makes the pages
+    more restrained than the rest of the marketing site, which does assert unverified figures
+    (`metrics-strip.tsx` "101K+"/"11 Yrs", `hero.tsx` "99.8%"/"4,820 TEU", `why-us.tsx`
+    "16,000 verified reviews", `testimonials.tsx` three named people). That asymmetry is
+    deliberate; if real facts ever arrive, those files are the audit scope.
+
+    **`/services` follows the same rule.** Its hero counts the divisions from `SERVICE_DIVISIONS`
+    and the modes from `TRANSPORT_TYPES`, and `transport-modes.tsx` reads
+    `TRANSPORT_TYPE_LABELS` — so a schema change updates the page. Its one borrowed set of figures
+    is `160+ countries` and the two certification badges, repeated from `hero.tsx` and
+    `site-footer.tsx`. The six division descriptions are the EXCEPTION: they are unverified
+    marketing copy ("Vienna Convention Sealed", "Lloyd's-backed", "IATA Endorsed"), but they were
+    already published by `services-grid.tsx` on the landing page — `/services` moved them into
+    `service-divisions.ts` verbatim rather than writing new ones, so the audit scope did not grow.
+    That file is now the single place to correct them.
+
+    Note `/contact`'s "World Trade Center, Ste 4800 / Rotterdam & Houston" block no longer has a
+    footer counterpart — the footer's Global Operations column was removed — so it is now the only
+    place the site states an address.
+
 22. **`npm run db:indexes` reports one conflict on `shipment_trackingCode_uidx` against any database
     the app has already run against outside production.** `Shipment.trackingCode` declares
     field-level `unique: true`, so Mongoose's `autoIndex` creates `trackingCode_1` first; the script

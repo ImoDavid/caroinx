@@ -23,14 +23,25 @@ type FooterColumn = {
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
+    /**
+     * These labels predate `/services` and do not match its six division
+     * titles one-for-one, so each is pointed at the division that genuinely
+     * covers it rather than renamed to match. Two are not literal matches:
+     *   - "Cold Chain Storage" → warehousing, whose copy already names
+     *     "climate-controlled cold storage".
+     *   - "Customs Brokerage" → the page itself, with NO anchor. None of the
+     *     six divisions is customs brokerage, and sending it to the
+     *     nearest-sounding one would be a lie. The page top is the honest
+     *     destination until something on it actually covers clearance.
+     */
     heading: "Solutions",
     links: [
-      { label: "Air Cargo Direct", href: "#" },
-      { label: "Ocean Freight FCL/LCL", href: "#" },
-      { label: "Intermodal Road Freight", href: "#" },
-      { label: "Diplomatic Courier", href: "#" },
-      { label: "Cold Chain Storage", href: "#" },
-      { label: "Customs Brokerage", href: "#" },
+      { label: "Air Cargo Direct", href: "/services#air-freight" },
+      { label: "Ocean Freight FCL/LCL", href: "/services#ocean-freight" },
+      { label: "Intermodal Road Freight", href: "/services#road-intermodal" },
+      { label: "Diplomatic Courier", href: "/services#diplomatic-secure" },
+      { label: "Cold Chain Storage", href: "/services#warehousing" },
+      { label: "Customs Brokerage", href: "/services" },
     ],
   },
   {
@@ -105,7 +116,10 @@ export function SiteFooter() {
     >
       <div className="mx-auto max-w-7xl px-margin md:px-margin-tablet lg:px-margin-desktop">
         <div className="grid grid-cols-1 gap-gutter-desktop border-b border-border-dark pb-space-2xl md:grid-cols-2 lg:grid-cols-12">
-          <div className="space-y-space-md lg:col-span-4">
+          {/* col-span-6, not 4: the 12-column row was 4 + (3 × 2) + 2, and the
+              Global Operations block that held the last 2 is gone. Without this
+              the row would stop short and read as a layout bug. */}
+          <div className="space-y-space-md lg:col-span-6">
             <BrandLogo />
             <p className="max-w-sm text-body-base text-white/70">
               Premier multimodal freight forwarding, intermodal rail &amp; road, air transit, and
@@ -128,24 +142,6 @@ export function SiteFooter() {
           {FOOTER_COLUMNS.map((column) => (
             <FooterColumn key={column.heading} column={column} />
           ))}
-
-          <div className="space-y-space-sm lg:col-span-2">
-            <h2 className="font-display text-title-sm font-bold tracking-wide text-white uppercase">
-              Global Operations
-            </h2>
-            <div className="space-y-space-xs text-body-sm text-white/70">
-              <p className="font-medium text-white">Worldwide HQ:</p>
-              <p>
-                World Trade Center, Ste 4800
-                <br />
-                Rotterdam &amp; Houston
-              </p>
-              <p className="pt-2 font-medium text-white">Dispatch Desk:</p>
-              <p className="font-semibold break-all text-secondary-container">
-                {BRAND.dispatchEmail}
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-col items-center justify-between gap-space-md pt-space-lg text-center text-label-sm text-white/60 md:flex-row md:text-left">

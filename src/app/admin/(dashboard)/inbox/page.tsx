@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { ConversationList } from "@/components/admin/conversation-list";
 import { InboxFilters } from "@/components/admin/inbox-filters";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth/guards";
 import { listConversations } from "@/services/chat.service";
@@ -86,12 +85,8 @@ export default async function InboxPage({ searchParams }: PageProps<"/admin/inbo
           pages start at <h2>. */}
       <h2 className="font-display text-headline-md">Conversations</h2>
 
-      {raw.deleted ? (
-        <Alert>
-          <AlertDescription>That conversation was deleted.</AlertDescription>
-        </Alert>
-      ) : null}
-
+      {/* No "that conversation was deleted" notice: nothing redirects here with
+          ?deleted=1 any more, so the banner was unreachable. */}
       <InboxFilters total={total} />
 
       <ConversationList conversations={items} filtered={filtered} />

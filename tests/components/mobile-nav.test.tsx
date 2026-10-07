@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -199,15 +199,21 @@ describe("closing", () => {
   it("closes when a destination is tapped, so the panel does not cover the next page", async () => {
     await open();
 
-    // Services stands in for the rest of the rows: it is the one whose href is
-    // "#", so it renders as a plain <a> and is safe to click. next/link throws
-    // outside a router context, and jsdom cannot navigate to "/track" either —
-    // every row carries the same handler regardless.
+    // Services stands in for the rest of the rows; every row carries the same
+    // handler. It used to be the one safe row to click because its href was
+    // "#", which made it a plain <a> — since /services exists, EVERY row is a
+    // next/link, and next/link throws on a real navigation outside a router
+    // context. So the default is swallowed and the React handler still runs,
+    // which is the whole of what this asserts.
     //
     // An onClick rather than an effect on usePathname(), which would both trip
     // react-hooks/set-state-in-effect and miss a tap on the CURRENT route, where
     // Next performs no navigation and so fires no pathname change at all.
-    await userEvent.click(screen.getByRole("link", { name: "Services" }));
+    const row = screen.getByRole("link", { name: "Services" });
+    row.addEventListener("click", (event) => {
+      event.preventDefault();
+    });
+    fireEvent.click(row);
 
     expect(screen.queryByRole("navigation")).toBeNull();
   });

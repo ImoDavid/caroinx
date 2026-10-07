@@ -19,5 +19,3 @@ export type ReplyFormState = FormState<ReplyField>;
 
 /** Close and reopen both address a conversation by id and nothing else. */
 export type ConversationFormState = FormState<"id">;
-
-export type DeleteConversationFormState = FormState<"id">;

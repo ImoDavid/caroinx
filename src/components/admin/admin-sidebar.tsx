@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsLeft, Globe, LifeBuoy, Network } from "lucide-react";
+import { ChevronsLeft, Globe, Network } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
 
@@ -25,12 +25,12 @@ import { AdminNav } from "./admin-nav";
 /** Matches the marketing eyebrow idiom in `section-heading.tsx`. */
 const GROUP_LABEL = "text-label-badge font-bold tracking-widest uppercase";
 
-function BrandRow() {
+function BrandRow({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <SidebarMenuButton asChild size="lg" tooltip={BRAND.legalName}>
-          <Link href="/admin">
+          <Link href="/admin" onClick={onNavigate}>
             <span
               aria-hidden="true"
               className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary-container ring-1 ring-sidebar-border"
@@ -86,11 +86,25 @@ export function AdminSidebar() {
   // Overview needs no exact-match special case, and a future /admin/cargo/[code]
   // keeps Cargo highlighted with no code change.
   const activeSegment = useSelectedLayoutSegment();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  // Below `md` the sidebar IS a Sheet, so navigating without closing it leaves
+  // the destination hidden behind the panel the user just used. Passed to every
+  // destination in here — nav items, the brand row and the public-site link —
+  // because "some links close it" is worse than none.
+  //
+  // `undefined` on desktop so no handler is attached at all where there is
+  // nothing to close.
+  const closeOnMobile = isMobile
+    ? () => {
+        setOpenMobile(false);
+      }
+    : undefined;
 
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
-        <BrandRow />
+        <BrandRow onNavigate={closeOnMobile} />
       </SidebarHeader>
 
       <SidebarContent>
@@ -99,28 +113,24 @@ export function AdminSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel className={GROUP_LABEL}>Workspace</SidebarGroupLabel>
             <SidebarGroupContent>
-              <AdminNav activeSegment={activeSegment} />
+              <AdminNav activeSegment={activeSegment} onNavigate={closeOnMobile} />
             </SidebarGroupContent>
           </SidebarGroup>
 
+          {/* Labelled "Site", not "Support": the contact-support mailto was
+              removed and this group now only leaves the admin area. The public
+              site keeps its own support channels — this was a duplicate of
+              them, not the only route to one. */}
           <SidebarGroup>
-            <SidebarGroupLabel className={GROUP_LABEL}>Support</SidebarGroupLabel>
+            <SidebarGroupLabel className={GROUP_LABEL}>Site</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Public site" className="min-h-11">
-                    <Link href="/">
+                    <Link href="/" onClick={closeOnMobile}>
                       <Globe aria-hidden="true" />
                       <span>Public site</span>
                     </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Contact support" className="min-h-11">
-                    <a href={`mailto:${BRAND.supportEmail}`}>
-                      <LifeBuoy aria-hidden="true" />
-                      <span>Contact support</span>
-                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

@@ -396,3 +396,30 @@
     transition: none;
   }
 }
+
+/* Height of the admin chrome above and below a page's own content.
+ *
+ * The conversation screen is the ONE admin page that owns a viewport-height
+ * shell — a sticky header, a thread that scrolls by itself, and a pinned
+ * composer. An internal scroll region needs a DEFINITE height, and the shell
+ * gives it none: `admin/layout.tsx` is `min-h-svh`, so the flex chain has no
+ * bound and `flex-1` alone would just keep growing.
+ *
+ * So the number lives here, once, instead of being inlined into a calc() in a
+ * component where nobody would find it when the topbar changes:
+ *
+ *   topbar h-16                      4rem
+ *   #admin-main py-space-lg × 2      3rem
+ *   SidebarInset m-2 × 2 (md and up) 1rem
+ *
+ * Paired with `h-[calc(100dvh-var(--admin-chrome))]`. `dvh`, never `vh`, or a
+ * phone's collapsing URL bar puts the composer under it. */
+:root {
+  --admin-chrome: 7rem;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --admin-chrome: 8rem;
+  }
+}

@@ -1,6 +1,6 @@
 import { PackageSearch, SearchX, TriangleAlert } from "lucide-react";
 
-import { BRAND } from "@/components/marketing/brand";
+import { ChatCta } from "@/components/marketing/chat/chat-cta";
 import { TRACKING_CODE_PREFIX } from "@/validations/shipment";
 
 /**
@@ -33,17 +33,15 @@ function Panel({
   );
 }
 
-function SupportLine() {
+/**
+ * `code` is whatever the visitor typed, including a malformed one — it is
+ * carried into the pre-chat form verbatim so the admin can see what they meant
+ * (rule 41 keeps `trackingCodeAttempted` for exactly this).
+ */
+function SupportLine({ code }: { code?: string }) {
   return (
     <p className="pt-space-sm text-body-sm text-text-muted">
-      Still stuck? Email{" "}
-      <a
-        href={`mailto:${BRAND.supportEmail}`}
-        className="rounded font-medium underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:outline-none"
-      >
-        {BRAND.supportEmail}
-      </a>
-      .
+      Still stuck? <ChatCta trackingCode={code}>Chat with our team</ChatCta>.
     </p>
   );
 }
@@ -72,7 +70,7 @@ export function TrackingNotFound({ code }: { code: string }) {
         Check the code against your receipt — it may have been mistyped, or the consignment may not
         have been registered yet.
       </p>
-      <SupportLine />
+      <SupportLine code={code} />
     </Panel>
   );
 }
@@ -86,7 +84,7 @@ export function TrackingInvalid({ code }: { code: string }) {
         <span className="font-mono font-semibold">TGR-8F3K2QD7</span> — the {TRACKING_CODE_PREFIX}{" "}
         prefix followed by eight characters.
       </p>
-      <SupportLine />
+      <SupportLine code={code} />
     </Panel>
   );
 }

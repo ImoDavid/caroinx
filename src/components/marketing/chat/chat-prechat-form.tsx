@@ -23,6 +23,12 @@ import type { StartInput } from "./chat-api";
 export type ChatPrechatFormProps = {
   busy: boolean;
   error: string | null;
+  /**
+   * Prefilled when the chat was opened from a CTA that already knows the code —
+   * the customs-charge panel on a tracking result, for instance. Still editable:
+   * the field accepts anything and never rejects (rule 41).
+   */
+  defaultTrackingCode?: string;
   onStart: (input: StartInput) => void;
 };
 
@@ -30,10 +36,17 @@ const FIELD =
   "min-h-11 w-full rounded-xl bg-surface-container-low px-space-sm py-2.5 text-body-sm text-on-surface placeholder:text-text-muted focus:bg-white focus:ring-2 focus:ring-primary-container focus:outline-hidden";
 const LABEL = "block pb-1 text-label-sm font-semibold text-on-surface-variant";
 
-export function ChatPrechatForm({ busy, error, onStart }: ChatPrechatFormProps) {
+export function ChatPrechatForm({
+  busy,
+  error,
+  defaultTrackingCode,
+  onStart,
+}: ChatPrechatFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [trackingCode, setTrackingCode] = useState("");
+  // A `useState` initialiser, so the visitor can still edit or clear it. The
+  // panel unmounts when closed, so reopening from a different CTA re-seeds it.
+  const [trackingCode, setTrackingCode] = useState(defaultTrackingCode ?? "");
 
   return (
     <form

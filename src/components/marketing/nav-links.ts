@@ -14,10 +14,14 @@ export type MarketingNavLink = {
   readonly label: string;
   readonly href: string;
   /**
-   * Desktop-only affordance promising the Services dropdown that does not exist
-   * yet. The mobile panel deliberately ignores it: a chevron that opens nothing
-   * is worse on a touch target than on a hover target, where it at least reads
-   * as "hover me".
+   * Desktop-only affordance for a dropdown panel.
+   *
+   * NO ENTRY SETS THIS TODAY. Services was the only one, back when it promised
+   * a Services menu and had no page at all; now it has a page, and a chevron
+   * that opens nothing would be a worse lie than before — the row goes
+   * somewhere, so the chevron would read as "there is more here" rather than as
+   * "not built yet". Kept because the affordance is still the right one if a
+   * real dropdown is ever added; the mobile panel ignores it either way.
    */
   readonly hasChevron: boolean;
 };
@@ -26,8 +30,7 @@ export type MarketingNavLink = {
 // `as const` keeps the tuple type so index access stays non-optional under
 // noUncheckedIndexedAccess, while `satisfies` still type-checks each entry.
 export const NAV_LINKS = [
-  // TODO(nav): Services has no page yet and no dropdown panel.
-  { label: "Services", href: "#", hasChevron: true },
+  { label: "Services", href: "/services", hasChevron: false },
   { label: "Tracking", href: "/track", hasChevron: false },
   { label: "Company", href: "/about", hasChevron: false },
   { label: "Contact", href: "/contact", hasChevron: false },
